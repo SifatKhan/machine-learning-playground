@@ -21,13 +21,13 @@ class PassengerList:
         self.data = self._get_data()
         
 
-        zeros = np.zeros((self.data.shape[0],929))
+        ticketVector = np.zeros((self.data.shape[0],929))
         surnameVector = np.zeros((self.data.shape[0], len(surnamelist)))
 
 
         for idx in range(self.data.shape[0]):
             ticketidx = self.ticketdict[self.data[idx,6]]
-            zeros[idx,ticketidx] = 1
+            ticketVector[idx,ticketidx] = 1
 
             surnameidx = self.surnamedict[self.data[idx,25]]
             surnameVector[idx,surnameidx] = 1
@@ -35,7 +35,7 @@ class PassengerList:
 
 
         self._drop_uninteresting_columns()
-        self.data = np.hstack((self._get_data(),zeros))
+        self.data = np.hstack((self._get_data(),ticketVector))
         self.data = np.hstack((self.data, surnameVector))
 
 

@@ -1,4 +1,124 @@
 import numpy as np
 import tensorflow as tf
 import pandas as pd
+import houselist as hl
+import time
 
+#pd.read_csv('train.csv').sample(frac=1).to_csv('train.csv',index=False)
+house_list = hl.HouseList(trainfile='train.csv',testfile='test.csv')
+
+def weight_variable(shape,name):
+    return tf.get_variable(
+        name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
+
+def bias_variable(shape,name):
+    return tf.get_variable(
+        name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
+
+input_nodes = house_list.traindata.shape[1]
+hidden_nodes_layer1 = 200
+hidden_nodes_layer2 = 200
+hidden_nodes_layer3 = 200
+output_nodes = 1
+num_iterations = 20000
+
+
+xplaceholder = tf.placeholder(tf.float32, [None, input_nodes])
+yplaceholder = tf.placeholder(tf.float32, [None,1])
+lambdaPlaceHolder = tf.placeholder(tf.float32, [])
+
+
+with tf.name_scope('Hidden1'):
+    hidden_layer1 = {'theta': weight_variable([input_nodes, hidden_nodes_layer1], 'Theta1'),
+                     'bias': bias_variable([hidden_nodes_layer1], 'Bias1')}
+    a2 = tf.nn.relu(tf.add(tf.matmul(xplaceholder, hidden_layer1['theta']), hidden_layer1['bias']), name='Layer2Activation')
+
+with tf.name_scope('Hidden2'):
+    hidden_layer2 = {'theta': weight_variable([hidden_nodes_layer1, hidden_nodes_layer2], 'Theta2'),
+                     'bias': bias_variable([hidden_nodes_layer2], 'Bias2')}
+    a3 = tf.nn.relu(tf.add(tf.matmul(a2, hidden_layer2['theta']), hidden_layer2['bias']), name='Layer3Activation')
+
+with tf.name_scope('Hidden3'):
+    hidden_layer3 = {'theta': weight_variable([hidden_nodes_layer2, hidden_nodes_layer3], 'Theta3'),
+                     'bias': bias_variable([hidden_nodes_layer3], 'Bias3')}
+    a4 = tf.nn.relu(tf.add(tf.matmul(a3, hidden_layer3['theta']), hidden_layer3['bias']), name='Layer4Activation')
+
+with tf.name_scope('OutputLayer'):
+    output_layer = {'theta': weight_variable([hidden_nodes_layer3, output_nodes], 'Theta4'),
+                    'bias': bias_variable([output_nodes], 'Bias4')}
+    prediction = tf.add(tf.matmul(a4, output_layer['theta']), output_layer['bias'],name='Prediction')
+
+
+with tf.name_scope('CostFunction'):
+    cost = tf.sqrt(tf.reduce_mean(tf.square(prediction - yplaceholder)))
+    ## Add regularization
+    cost = tf.reduce_mean(cost + lambdaPlaceHolder * tf.nn.l2_loss(hidden_layer1['theta']) \
+                        + lambdaPlaceHolder * tf.nn.l2_loss(hidden_layer2['theta']) \
+                        + lambdaPlaceHolder * tf.nn.l2_loss(hidden_layer3['theta']))
+    tf.summary.scalar('cost', cost)
+    optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(cost)
+
+
+#lambdaValues = [1.0,1.0,1.0,0.0, 0.0, 0.0, 1e-3,1e-3,1e-3,2e-3,2e-3,2e-3,4e-3,4e-3,4e-3,1e-2,1e-2,1e-2,1e-1,1e-1,1e-1]
+lambdaValues = [4e-3]
+
+with tf.Session() as session:
+    session.run(tf.global_variables_initializer())
+    merged = tf.summary.merge_all()
+
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(coord=coord)
+
+    lambdaIndex = 0
+    lambdaTable = []
+    now = time.time()
+    for myLambda in lambdaValues:
+
+        session.run(tf.global_variables_initializer())
+
+        log_dir = '/tmp/house_logs/'+str(int(now))+'-'+str(myLambda)+'['+str(lambdaIndex)+']'
+        lambdaIndex+=1
+
+        train_writer = tf.summary.FileWriter(log_dir,session.graph)
+
+        batch_x = house_list.traindata[0:]
+        batch_y = house_list.trainlabels[0:]
+
+        val_batch_x = house_list.traindata[-250:]
+        val_batch_y = house_list.trainlabels[-250:]
+
+        for iteration in range(num_iterations):
+
+            _, temp_cost, summary,_pre, = session.run([optimizer, cost, merged,prediction],
+                                                    feed_dict={xplaceholder: batch_x,
+                                                               yplaceholder: batch_y,
+                                                               lambdaPlaceHolder: myLambda})
+
+            if (iteration % 250 == 0):
+                train_writer.add_summary(summary, iteration)
+                #print('Training error:', temp_cost, ' Iteration', iteration + 1, 'out of', num_iterations)
+
+
+        validationPrediction,validationCost = session.run([prediction,cost],
+                                                          feed_dict={xplaceholder: val_batch_x,
+                                                                     yplaceholder:val_batch_y,
+                                                                     lambdaPlaceHolder: 0.0})
+
+
+        print("Validation Cost:",validationCost, "Lambda:",myLambda,sep='\t')
+        coord.join(threads)
+
+
+    testing_x = house_list.testdata
+    testingIds= house_list.test_ids
+    myPrediction = session.run(prediction, feed_dict={xplaceholder: testing_x})
+
+    myPrediction = np.asmatrix(myPrediction)
+    data = np.hstack((testingIds.astype(int),myPrediction))
+
+    df = pd.DataFrame(data=data,columns = ['Id','SalePrice'])
+    df.SalePrice = df.SalePrice.astype(float)
+    df.Id = df.Id.astype(int)
+    df.to_csv('output.csv', index=False)
+
+    coord.request_stop()

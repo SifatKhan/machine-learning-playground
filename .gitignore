@@ -4,3 +4,4 @@ Titanic/myValidate.csv
 Titanic/mytest.csv
 Titanic/mytrain.csv
 Titanic/output.csv
+*__pycache__
