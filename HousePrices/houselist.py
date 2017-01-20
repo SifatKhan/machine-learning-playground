@@ -19,6 +19,7 @@ class HouseList:
         self._test_dataframe.loc[1116, "GarageType"] = np.nan
 
         self._train_dataframe = self._train_dataframe[self._train_dataframe["GrLivArea"] <= 4000]
+        self._train_dataframe = self._train_dataframe[self._train_dataframe["SalePrice"] <= 400000]
 
         self._add_means_to_nulls()
 
