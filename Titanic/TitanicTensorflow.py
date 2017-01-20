@@ -6,7 +6,7 @@ import time
 import passengerlist
 
 
-pd.read_csv('train.csv').sample(frac=1).to_csv('train.csv',index=False)
+#pd.read_csv('train.csv').sample(frac=1).to_csv('train.csv',index=False)
 myDf = pd.read_csv('train.csv')
 tickets = np.unique(np.append(pd.read_csv('test.csv').Ticket.unique(),myDf.Ticket.unique()))
 
@@ -18,7 +18,7 @@ surnames = np.unique(np.append(surnames,myDf.Surname.unique()))
 
 
 
-test_passenger_list = passengerlist.read_csv('test.csv',tickets,surnames,True)
+test_passenger_list = passengerlist.read_csv('test.csv',tickets,surnames,testlist=True)
 
 ## Ok, here we being to train using a neural network
 
@@ -31,14 +31,11 @@ def bias_variable(shape,name):
         name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
 
 
-batchSize = 500
-num_iterations = 6000
+num_iterations = 2500
 input_nodes = 22 + len(tickets) + len(surnames) #951 # 22
-hidden_nodes_layer1 = 100
-hidden_nodes_layer2 = 100
-hidden_nodes_layer3 = 100
-hidden_nodes_layer4 = 100
-hidden_nodes_layer5 = 100
+hidden_nodes_layer1 = 500
+hidden_nodes_layer2 = 500
+hidden_nodes_layer3 = 500
 output_nodes = 2
 
 xplaceholder = tf.placeholder(tf.float32, [None, input_nodes])
@@ -62,10 +59,13 @@ with tf.name_scope('Hidden3'):
                      'bias': bias_variable([hidden_nodes_layer3], 'Bias3')}
     a4 = tf.nn.relu(tf.add(tf.matmul(a3, hidden_layer3['theta']), hidden_layer3['bias']), name='Layer4Activation')
 
+with tf.name_scope("Dropout"):
+    a4_drop = tf.nn.dropout(a4, lambdaPlaceHolder)
+
 with tf.name_scope('OutputLayer'):
-    output_layer = {'theta': weight_variable([hidden_nodes_layer4, output_nodes], 'Theta6'),
+    output_layer = {'theta': weight_variable([hidden_nodes_layer3, output_nodes], 'Theta6'),
                     'bias': bias_variable([output_nodes], 'Bias6')}
-    prediction = tf.nn.softmax(tf.add(tf.matmul(a4, output_layer['theta']), output_layer['bias'],name='Prediction'))
+    prediction = tf.nn.softmax(tf.add(tf.matmul(a4_drop, output_layer['theta']), output_layer['bias'],name='Prediction'))
     prediction_argmax = tf.argmax(prediction,1)
 
 
@@ -73,10 +73,11 @@ with tf.name_scope('OutputLayer'):
 with tf.name_scope('CostFunction'):
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, yplaceholder_onehot))
 
+    '''
     cost = tf.reduce_mean(cost + lambdaPlaceHolder * tf.nn.l2_loss(hidden_layer1['theta']) \
                         + lambdaPlaceHolder * tf.nn.l2_loss(hidden_layer2['theta']) \
                         + lambdaPlaceHolder * tf.nn.l2_loss(hidden_layer3['theta']))
-
+    '''
     tf.summary.scalar('cost', cost)
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 
@@ -99,7 +100,7 @@ lambdaValues = [
                 2e-3,
                ]
 
-#lambdaValues = [1e-3]
+lambdaValues = [1e-3]
 
 with tf.Session() as session:
     session.run(tf.global_variables_initializer())
@@ -109,7 +110,6 @@ with tf.Session() as session:
     threads = tf.train.start_queue_runners(coord=coord)
 
     lambdaIndex = 0
-    lambdaTable = []
     now = time.time()
     for myLambda in lambdaValues:
 
@@ -121,12 +121,8 @@ with tf.Session() as session:
         train_writer = tf.summary.FileWriter(log_dir,
                                              session.graph)
 
-        batch_x = passenger_list.data[0:-100]
-        batch_y = passenger_list.get_survival_data()[0:-100]
-
-        for sampleidx in range(batch_x.shape[0]):
-            sampleTicket = batch_x[sampleidx,6]
-
+        batch_x = passenger_list.data[0:]
+        batch_y = passenger_list.get_survival_data()[0:]
 
 
         val_batch_x = passenger_list.data[-100:]
@@ -135,19 +131,19 @@ with tf.Session() as session:
         for iteration in range(num_iterations):
 
             _, temp_cost, summary,_pre = session.run([optimizer, cost, merged,prediction_argmax],
-                                        feed_dict={xplaceholder: batch_x, yplaceholder: batch_y, lambdaPlaceHolder: myLambda})
+                                        feed_dict={xplaceholder: batch_x, yplaceholder: batch_y, lambdaPlaceHolder: 1.0})
 
             if (iteration % 250 == 0):
                 train_writer.add_summary(summary, iteration)
-                #print('Training error:', temp_cost, ' Iteration', iteration + 1, 'out of', num_iterations)
+                print('Training error:', temp_cost, ' Iteration', iteration + 1, 'out of', num_iterations)
 
-        testPrediction = session.run(prediction_argmax, {xplaceholder: batch_x, yplaceholder: batch_y})
+        testPrediction = session.run(prediction_argmax, {xplaceholder: batch_x, yplaceholder: batch_y, lambdaPlaceHolder: 1.0})
         testPrediction = np.asmatrix(testPrediction).T
         accuracy = np.equal(batch_y, testPrediction)
         accuracyMean = np.mean(accuracy)
 
 
-        validationPrediction = session.run(prediction_argmax,{xplaceholder: val_batch_x, yplaceholder:val_batch_y})
+        validationPrediction = session.run(prediction_argmax,{xplaceholder: val_batch_x, yplaceholder:val_batch_y, lambdaPlaceHolder: 1.0})
         validationPrediction = np.asmatrix(validationPrediction).T
         accuracy = np.equal(val_batch_y,validationPrediction)
         validationAccuracyMean = np.mean(accuracy)
@@ -175,7 +171,7 @@ with tf.Session() as session:
     testing_x = test_passenger_list.data
     testingIds= test_passenger_list.get_ids()
     myPrediction = session.run(prediction_argmax,
-                                feed_dict={xplaceholder: testing_x})
+                                feed_dict={xplaceholder: testing_x, lambdaPlaceHolder: 1.0})
 
     myPrediction = np.asmatrix(myPrediction).T
     data = np.hstack((testingIds.astype(int),myPrediction))

@@ -109,6 +109,14 @@ class PassengerList:
         df.loc[((df['Age'].isnull()) &(df['Sex']=='female')),'Age'] = medianFemaleAge
         df.loc[((df['Age'].isnull()) &(df['Sex']=='male')),'Age'] = medianMaleAge
 
+        age_mean = df['Age'].mean()
+        age_std = df['Age'].std()
+        print("lol")
+        df['Age'] = (df['Age'] - age_mean) / age_std
+        #df.loc[df['Age'] >62,'Age'] = 62
+
+        #df.loc[df['Fare'] > 100, 'Fare'] = 100
+
     def _fill_missing_fares_with_median(self):
         df = self.data_frame
         medianFirstClassFare = df[df['Pclass'] == 1]['Fare'].median()
@@ -123,11 +131,16 @@ class PassengerList:
         df.loc[((df['Fare'] == 0) &(df['Pclass']== 2)),'Fare'] = medianSecondClassFare
         df.loc[((df['Fare'] == 0) &(df['Pclass']== 3)),'Fare'] = medianThirdClassFare
 
+        fare_mean = df['Fare'].mean()
+        fare_std = df['Fare'].std()
+        df['Fare'] = (df['Fare'] - fare_mean) / fare_std
+
+
     def _convert_sex_to_gender_int(self):
         self.data_frame['GenderInt'] = self.data_frame['Sex'].map( {'female': 1, 'male':0})
 
     def _convert_embarkport_to_int(self):
-        self.data_frame['EmbarkedInt'] = self.data_frame['Embarked'].map( {'Q': 0, 'S':1, 'C':2, None: '3'  })
+        self.data_frame['EmbarkedInt'] = self.data_frame['Embarked'].map( {'Q': 0, 'S':1, 'C':2, None: 2  })
 
 
     def _drop_uninteresting_columns(self):
