@@ -5,3 +5,7 @@ Titanic/mytest.csv
 Titanic/mytrain.csv
 Titanic/output.csv
 *__pycache__
+
+Cats-v-Dogs/train*
+Cats-v-Dogs/test*
+
