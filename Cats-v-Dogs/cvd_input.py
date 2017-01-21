@@ -7,7 +7,7 @@ from os.path import isfile, join, isdir
 
 
 
-def read_images(path,batch_size):
+def read_training_images(path, batch_size):
     assert isdir(path) is True, "Data dir %r does not exist" % path
     file_list = [path+f for f in listdir(path) if isfile(join(path, f))]
     label_list = []
@@ -20,12 +20,23 @@ def read_images(path,batch_size):
     images = tf.convert_to_tensor(file_list, dtype=tf.string)
     labels = tf.convert_to_tensor(label_list, dtype=tf.int32)
 
+    ## I still have no idea how this input producer thing works, I just read the tutorial  ¯\_(ツ)_/¯
     filename_queue = tf.train.slice_input_producer([images,labels])
+    label = filename_queue[1]
 
     file_contents = tf.read_file(filename_queue[0])
     my_img = tf.image.decode_jpeg(file_contents, channels=3)
+
+    ###########################################################
+    ################## Image pre processing ###################
+    ###########################################################
     resized_img = tf.image.resize_images(my_img, [80,80])
-    label = filename_queue[1]
+    resized_img = tf.image.random_brightness(resized_img,max_delta=63)
+    resized_img = tf.image.random_contrast(resized_img,lower=0.2, upper=1.8)
+    resized_img = tf.image.random_flip_left_right(resized_img)
+    resized_img = tf.image.per_image_standardization(resized_img)
+    #resized_img = tf.image.random_flip_up_down(resized_img)
+
 
 
     # Depends on the number of files and the training speed.
