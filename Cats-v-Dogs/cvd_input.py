@@ -1,5 +1,4 @@
 import tensorflow as tf
-import numpy as np
 from os import listdir
 from os.path import isfile, join, isdir
 
@@ -7,7 +6,7 @@ from os.path import isfile, join, isdir
 
 
 
-def read_training_images(path, batch_size):
+def read_training_images(path, batch_size,image_size):
     assert isdir(path) is True, "Data dir %r does not exist" % path
     file_list = [path+f for f in listdir(path) if isfile(join(path, f))]
     label_list = []
@@ -30,7 +29,9 @@ def read_training_images(path, batch_size):
     ###########################################################
     ################## Image pre processing ###################
     ###########################################################
-    resized_img = tf.image.resize_images(my_img, [80,80])
+
+    resized_img = tf.image.resize_images(my_img, [image_size,image_size])
+    resized_img = tf.random_crop(resized_img, [image_size-10, image_size-10, 3])
     resized_img = tf.image.random_brightness(resized_img,max_delta=63)
     resized_img = tf.image.random_contrast(resized_img,lower=0.2, upper=1.8)
     resized_img = tf.image.random_flip_left_right(resized_img)
