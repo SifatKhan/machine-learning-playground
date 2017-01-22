@@ -9,6 +9,8 @@ Titanic/output.csv
 Cats-v-Dogs/train*
 Cats-v-Dogs/test*
 Cats-v-Dogs/validate*
+Cats-v-Dogs/model
+Cats-v-Dogs/*output*
 
 cifar10/cifar-10-batches-py/
 

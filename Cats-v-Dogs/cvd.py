@@ -1,24 +1,32 @@
 import tensorflow as tf
 import time
+import pandas as pd
+import numpy as np
+import os.path
 
 import cvd_input
 
 now = time.time()
 
 TRAIN_PATH = './train/'
-TEST_PATH = './validate/'
+VALIDATION_PATH = './validate/'
+TEST_PATH = './test/'
+TEST_SET_SIZE = 12500
 BATCH_SIZE = 100
-ITERATIONS = 6000
+ITERATIONS = 500
 IMAGE_SIZE = 90
 
 cropped_and_pool_img_size = int((IMAGE_SIZE-10)/4)
 iterations_per_epoch = 23000 / BATCH_SIZE
 
 with tf.variable_scope('TrainingSet'):
-    images, labels = cvd_input.read_training_images(TRAIN_PATH, BATCH_SIZE,IMAGE_SIZE)
+    images, labels,ids = cvd_input.read_training_images(TRAIN_PATH, BATCH_SIZE,IMAGE_SIZE)
 
 with tf.variable_scope('ValidationSet'):
-    test_images, test_labels = cvd_input.read_training_images(TEST_PATH, BATCH_SIZE,IMAGE_SIZE,augment_data=False)
+    val_images, val_labels, val_ids = cvd_input.read_training_images(VALIDATION_PATH, BATCH_SIZE, IMAGE_SIZE, augment_data=False)
+
+with tf.variable_scope('TestSet'):
+    test_images, _, test_ids = cvd_input.read_training_images(TEST_PATH, BATCH_SIZE, IMAGE_SIZE, augment_data=False, submission_set=True)
 
 x_placeholder = tf.placeholder(tf.float32, [None,IMAGE_SIZE-10,IMAGE_SIZE-10,3],name='input')
 y_placeholder = tf.placeholder(tf.int32, [None],name="labels")
@@ -27,12 +35,16 @@ img_op = tf.summary.image("my_img", x_placeholder,50)
 
 
 def weight_variable(shape,name):
-    return tf.get_variable(
+    my_var = tf.get_variable(
         name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
+    tf.add_to_collection('vars', my_var)
+    return my_var
 
 def bias_variable(shape,name):
-    return tf.get_variable(
+    my_var =  tf.get_variable(
         name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
+    tf.add_to_collection('vars', my_var)
+    return my_var
 
 def conv2d(x, W):
   return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
@@ -79,6 +91,7 @@ with tf.variable_scope('Output'):
 
     prediction = tf.matmul(h_fc1_dropout,W_output)+b_output
     prediction_argmax = tf.cast(tf.argmax(prediction, 1),tf.int32)
+    softmax = tf.nn.softmax(prediction)
 
 with tf.variable_scope('Loss'):
     cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(prediction,y_placeholder))
@@ -88,6 +101,7 @@ with tf.variable_scope('Loss'):
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     tf.summary.scalar('accuracy', accuracy)
     true_positives = tf.reduce_sum(tf.cast(tf.logical_and(tf.equal(prediction_argmax,1),tf.equal(y_placeholder, 1) ),tf.int32))
+    true_negatives = tf.reduce_sum(tf.cast(tf.logical_and(tf.equal(prediction_argmax, 0), tf.equal(y_placeholder, 0)), tf.int32))
     false_positives = tf.reduce_sum(tf.cast(tf.logical_and(tf.equal(prediction_argmax,1),tf.equal(y_placeholder, 0) ),tf.int32))
     false_negatives = tf.reduce_sum(tf.cast(tf.logical_and(tf.equal(prediction_argmax,0),tf.equal(y_placeholder, 1) ),tf.int32))
     precision =  true_positives / (true_positives +false_positives )
@@ -95,15 +109,23 @@ with tf.variable_scope('Loss'):
     f1_score = 2 * ((precision * recall) / (precision + recall))
 
     tf.summary.scalar('true_positives', true_positives)
+    tf.summary.scalar('true_negatives', true_negatives)
     tf.summary.scalar('false_positives', false_positives)
     tf.summary.scalar('false_negatives', false_negatives)
-    tf.summary.scalar('a-F1-Score', f1_score)
+    tf.summary.scalar('F1-Score', f1_score)
+    tf.summary.scalar('Recall', recall)
+    tf.summary.scalar('Precision', precision)
 
 iter = 0
 
-init_op = tf.initialize_all_variables()
+saver = tf.train.Saver()
 with tf.Session() as session:
     session.run(tf.global_variables_initializer())
+
+    ckpt = tf.train.get_checkpoint_state('./model')
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(session, ckpt.model_checkpoint_path)
+
     merged = tf.summary.merge_all()
 
     log_dir = '/tmp/cvd_logs/{}'.format( str(int(now)))
@@ -119,24 +141,59 @@ with tf.Session() as session:
                               feed_dict={x_placeholder: img_batch, y_placeholder: label_batch,
                                          keep_prob: 0.5})
 
+        if( iter % 10 == 0 ):
 
-        if( iter > 20 and iter % 10 == 0 ):
 
-
-            val_img_batch, val_label_batch = session.run([test_images, test_labels])
-            accuracy_result,_test_pred_argmax,_f1,summary = session.run([accuracy, prediction_argmax,f1_score,merged],
+            val_img_batch, val_label_batch, val_id_batch = session.run([val_images, val_labels,val_ids])
+            accuracy_result,_test_pred_argmax,_pred,_f1,summary = session.run([accuracy, prediction_argmax,prediction,f1_score,merged],
                                                                          feed_dict={x_placeholder: val_img_batch,
                                                                                     y_placeholder: val_label_batch,
                                                                                     keep_prob: 1.0})
             train_writer.add_summary(summary, iter)
 
 
-            if( iter+1 % iterations_per_epoch == 0 ):
+            print("Iteration: {0}, Loss: {1:.4f} Validation accuracy: {2:.4f}, F1 score: {3:.4f}".format( iter,_loss,accuracy_result,_f1))
+            if (iter % iterations_per_epoch == 0):
                 print("*********************************************")
-                print("****************End of Epoch {}**************".format(int(iter/iterations_per_epoch)))
+                print("****************End of Epoch {}**************".format(int(iter / iterations_per_epoch)))
                 print("*********************************************")
 
-            print("Iteration: {0}, Loss: {1:.4f} Validation accuracy: {2:.4f}, F1 score: {3:.4f}".format( iter,_loss,accuracy_result,_f1))
+                saver.save(session, './model/my-model', iter)
+
+    print("*********************************************")
+    print("**************Finished training**************")
+    print("*********************************************")
+
+    iter = 0
+    myPrediction = None
+    myIds = None
+    while (iter < TEST_SET_SIZE/BATCH_SIZE): #
+
+        if (iter % 10 == 0):
+            print("Evaluation iteration {}".format(iter))
+
+        iter += 1
+
+        test_img_batch, test_id_batch = session.run([test_images, test_ids])
+        _test_pred  = session.run(softmax,feed_dict={x_placeholder: test_img_batch,
+                                                                    keep_prob: 1.0})
+
+        if( myPrediction is None ):
+            myPrediction =  np.asmatrix(_test_pred[:, 1]).T
+            myIds = np.asmatrix(test_id_batch.astype(int)).T
+        else:
+            myPrediction = np.vstack((myPrediction,np.asmatrix(_test_pred[:,1]).T))
+            myIds = np.vstack((myIds, np.asmatrix(test_id_batch.astype(int)).T))
+
+
+
+    data = np.hstack((myIds, myPrediction))
+
+    df = pd.DataFrame(data=data, columns=['id', 'label'])
+    df.label = df.label.astype(float)
+    df.id = df.id.astype(int)
+    df.to_csv('output.csv', index=False)
+
 
     coord.request_stop()
     coord.join(threads)
