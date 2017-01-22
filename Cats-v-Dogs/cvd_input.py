@@ -64,7 +64,6 @@ def read_training_images(path, batch_size,image_size,augment_data=True, submissi
     else:
         images_batch, labels_batch, id_batch = tf.train.batch([resized_img, label, id],
                                                                       batch_size=batch_size,
-                                                                      capacity=min_queue_examples + 3 * batch_size,
-                                                                      allow_smaller_final_batch=True)
+                                                                      capacity=min_queue_examples + 3 * batch_size,)
 
     return images_batch, labels_batch, id_batch
