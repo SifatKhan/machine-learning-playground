@@ -6,18 +6,19 @@ import cvd_input
 now = time.time()
 
 TRAIN_PATH = './train/'
-TEST_PATH = './test/'
+TEST_PATH = './validate/'
 BATCH_SIZE = 100
 ITERATIONS = 6000
 IMAGE_SIZE = 90
 
 cropped_and_pool_img_size = int((IMAGE_SIZE-10)/4)
-iterations_per_epoch = 25000 / BATCH_SIZE
+iterations_per_epoch = 23000 / BATCH_SIZE
 
 with tf.variable_scope('TrainingSet'):
     images, labels = cvd_input.read_training_images(TRAIN_PATH, BATCH_SIZE,IMAGE_SIZE)
 
-#test_images, test_labels = cvd_input.read_training_images(TEST_PATH, BATCH_SIZE)
+with tf.variable_scope('ValidationSet'):
+    test_images, test_labels = cvd_input.read_training_images(TEST_PATH, BATCH_SIZE,IMAGE_SIZE,augment_data=False)
 
 x_placeholder = tf.placeholder(tf.float32, [None,IMAGE_SIZE-10,IMAGE_SIZE-10,3],name='input')
 y_placeholder = tf.placeholder(tf.int32, [None],name="labels")
@@ -83,10 +84,20 @@ with tf.variable_scope('Loss'):
     cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(prediction,y_placeholder))
     tf.summary.scalar('cross_entropy', cross_entropy)
     train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+    correct_prediction = tf.equal(prediction_argmax, y_placeholder)
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    tf.summary.scalar('accuracy', accuracy)
+    true_positives = tf.reduce_sum(tf.cast(tf.logical_and(tf.equal(prediction_argmax,1),tf.equal(y_placeholder, 1) ),tf.int32))
+    false_positives = tf.reduce_sum(tf.cast(tf.logical_and(tf.equal(prediction_argmax,1),tf.equal(y_placeholder, 0) ),tf.int32))
+    false_negatives = tf.reduce_sum(tf.cast(tf.logical_and(tf.equal(prediction_argmax,0),tf.equal(y_placeholder, 1) ),tf.int32))
+    precision =  true_positives / (true_positives +false_positives )
+    recall = true_positives / (true_positives +false_negatives )
+    f1_score = 2 * ((precision * recall) / (precision + recall))
 
-correct_prediction = tf.equal(prediction_argmax, y_placeholder)
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-tf.summary.scalar('accuracy', accuracy)
+    tf.summary.scalar('true_positives', true_positives)
+    tf.summary.scalar('false_positives', false_positives)
+    tf.summary.scalar('false_negatives', false_negatives)
+    tf.summary.scalar('a-F1-Score', f1_score)
 
 iter = 0
 
@@ -104,41 +115,28 @@ with tf.Session() as session:
     while( iter < ITERATIONS ):
         iter+=1
         img_batch, label_batch = session.run([images,labels])
-        _,_loss,_pred,summary = session.run([train_step,cross_entropy,prediction,merged],
+        _,_loss,_pred = session.run([train_step,cross_entropy,prediction],
                               feed_dict={x_placeholder: img_batch, y_placeholder: label_batch,
                                          keep_prob: 0.5})
 
 
         if( iter > 20 and iter % 10 == 0 ):
 
+
+            val_img_batch, val_label_batch = session.run([test_images, test_labels])
+            accuracy_result,_test_pred_argmax,_f1,summary = session.run([accuracy, prediction_argmax,f1_score,merged],
+                                                                         feed_dict={x_placeholder: val_img_batch,
+                                                                                    y_placeholder: val_label_batch,
+                                                                                    keep_prob: 1.0})
             train_writer.add_summary(summary, iter)
 
-            # val_img_batch, val_label_batch = session.run([images, labels])
-            accuracy_result, _test_pred_argmax, = session.run([accuracy, prediction_argmax],
-                                                                         feed_dict={x_placeholder: img_batch,
-                                                                                    y_placeholder: label_batch,
-                                                                                    keep_prob: 1.0})
 
-            temp_matrix = zip(_test_pred_argmax,label_batch)
-            false_positives = 0
-            true_positives = 0
-            false_negatives = 0
-            for entry in temp_matrix:
-                if (entry[0] == 1 and entry[1] == 0): false_positives += 1
-                if (entry[0] == 1 and entry[1] == 1): true_positives += 1
-                if (entry[0] == 0 and entry[1] == 1): false_negatives += 1
-
-            prec = true_positives / (true_positives + false_positives)
-            rec = true_positives / (true_positives + false_negatives)
-
-            f1 = 2 * ((prec * rec) / (prec + rec))
-
-            if( iter+1 % 250 == 0 ):
+            if( iter+1 % iterations_per_epoch == 0 ):
                 print("*********************************************")
                 print("****************End of Epoch {}**************".format(int(iter/iterations_per_epoch)))
                 print("*********************************************")
 
-            print("Iteration: {}, Loss: {} Training accuracy: {}, F1 score: {}".format( iter,_loss,accuracy_result,f1))
+            print("Iteration: {0}, Loss: {1:.4f} Validation accuracy: {2:.4f}, F1 score: {3:.4f}".format( iter,_loss,accuracy_result,_f1))
 
     coord.request_stop()
     coord.join(threads)
