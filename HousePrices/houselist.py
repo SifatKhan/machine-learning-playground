@@ -4,11 +4,22 @@ import os.path
 import math
 
 class HouseList:
-    def __init__(self,trainfile,testfile):
+    def __init__(self,trainfile,testfile,use_validationset=False):
         assert os.path.isfile(trainfile) is True, "Training data file %r does not exist" % trainfile
         assert os.path.isfile(testfile) is True, "Testing data file %r does not exist" % testfile
+        assert type(use_validationset) is bool, "use_validationset %r is not of type bool" % testfile
         self._train_dataframe = pd.read_csv(trainfile)
         self._test_dataframe = pd.read_csv(testfile)
+
+        self._test_dataframe.loc[666, "GarageQual"] = "TA"
+        self._test_dataframe.loc[666, "GarageCond"] = "TA"
+        self._test_dataframe.loc[666, "GarageFinish"] = "Unf"
+        self._test_dataframe.loc[666, "GarageYrBlt"] = 1980
+
+        self._test_dataframe.loc[1116, "GarageType"] = np.nan
+
+        self._train_dataframe = self._train_dataframe[self._train_dataframe["GrLivArea"] <= 4000]
+        self._train_dataframe = self._train_dataframe[self._train_dataframe["SalePrice"] <= 400000]
 
         self._add_means_to_nulls()
 
@@ -46,13 +57,14 @@ class HouseList:
             train_onehot_vector = np.zeros((len(self._train_dataframe),len(all_values)))
             test_onehot_vector = np.zeros((len(self._test_dataframe),len(all_values)))
 
-
             ## This could be done better I believe. This is very slow...
-
-            for idx in range(len(self._train_dataframe)):
-                value = self._train_dataframe[string_col][idx]
+            ## ... and hacky
+            idx = 0
+            for index, row in self._train_dataframe.iterrows():
+                value = row[string_col]
                 value_idx = value_dict[value]
-                train_onehot_vector[idx,value_idx] = 1
+                train_onehot_vector[idx, value_idx] = 1
+                idx+=1
 
             for idx in range(len(self._test_dataframe)):
                 value = self._test_dataframe[string_col][idx]
@@ -67,6 +79,17 @@ class HouseList:
         self.traindata = np.hstack((self.traindata,train_vectors))
         self.testdata = np.hstack((self.testdata, test_vectors))
 
+        validationset_size = 250
+
+        self.validationdata = self.traindata[-validationset_size:]
+        self.validationlabels = self.trainlabels[-validationset_size:]
+
+        if(use_validationset == True):
+            self.traindata = self.traindata[0:-validationset_size]
+            self.trainlabels = self.trainlabels[0:-validationset_size]
+
+
+
 
     def _add_means_to_nulls(self):
         
@@ -80,7 +103,7 @@ class HouseList:
         
         for null_col in train_null_cols:
             median = df[null_col].median()
-            median = 0.0
+            #median = 0.0
             df.loc[(df[null_col].isnull()),null_col] = median
             tdf.loc[(tdf[null_col].isnull()),null_col] = median
 
