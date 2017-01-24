@@ -1,29 +1,29 @@
 import tensorflow as tf
 import math
 import cvd_input
+import time
 
 import os.path
-from os import listdir
-from os.path import isfile, join
 
 
 class CVD_Model:
-    def __init__(self, model_dir, traindata_dir, validationdata_dir):
+    def __init__(self, model_dir, traindata_dir, validationdata_dir, testdata_dir):
 
         self._model_dir = model_dir
         self._traindata_dir = traindata_dir
         self._validationdata_dir = validationdata_dir
+        self._testdata_dir = testdata_dir
 
-        self._trainingset_size = len([f for f in listdir(self._traindata_dir) if isfile(join(self._traindata_dir, f))])
-        self._BATCH_SIZE = 128
-        self._IMAGE_SIZE = 90
+        self._trainingset_size = 23000
+        self._batch_size = 128
+        self._img_size = 90
 
         if not os.path.exists(self._model_dir):
             os.makedirs(self._model_dir)
 
-        self._cropped_image_size = self._IMAGE_SIZE - 10
+        self._cropped_image_size = self._img_size - 10
         self._crop_pool_img_size = int(self._cropped_image_size / 4)
-        self._iterations_per_epoch = int(math.ceil(self._trainingset_size / self._BATCH_SIZE))
+        self._iterations_per_epoch = int(math.ceil(self._trainingset_size / self._batch_size))
 
         self._x = tf.placeholder(tf.float32, [None, self._cropped_image_size, self._cropped_image_size, 3],
                                  name='Input')
@@ -36,39 +36,56 @@ class CVD_Model:
         self._build_model()
         self._build_trainer()
 
-        self.summary = tf.summary.merge(tf.get_collection("summaries"))
+        self._images, self._labels, _ = cvd_input.read_images(self._traindata_dir,
+                                                              self._batch_size,
+                                                              self._img_size)
+
+        self._val_images, self._val_labels, _ = cvd_input.read_images(self._validationdata_dir,
+                                                                      self._batch_size,
+                                                                      self._img_size,
+                                                                      augment_data=False)
+
+        self._test_images, _, self._test_ids = cvd_input.read_images(self._testdata_dir, 100,
+                                                                     self._img_size,
+                                                                     augment_data=False,
+                                                                     submission_set=True)
+
+        self.summary = tf.summary.merge_all()
+
+
 
     def predict(self, images, session):
         return session.run(self.prediction, feed_dict={self._x: images, self._keep_prob: 1.0})
 
-    def predict_softmax(self, images,session):
+    def predict_softmax(self, images, session):
         return session.run(self.softmax, feed_dict={self._x: images, self._keep_prob: 1.0})
 
     def train(self, num_iterations, session):
 
-        images, labels, ids = cvd_input.read_training_images(self._traindata_dir,
-                                                             self._BATCH_SIZE,
-                                                             self._IMAGE_SIZE)
+        now = time.time()
+        log_dir = '/tmp/cvd_logs/{}'.format(str(int(now)))
+        train_writer = tf.summary.FileWriter(log_dir, session.graph)
 
-        val_images, val_labels, val_ids = cvd_input.read_training_images(self._validationdata_dir,
-                                                                         self._BATCH_SIZE,
-                                                                         self._IMAGE_SIZE,
-                                                                         augment_data=False)
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(session, coord=coord)
 
         iter = 0
         while (iter < num_iterations):
             iter += 1
-            img_batch, label_batch = session.run([images, labels])
+            img_batch, label_batch = session.run([self._images, self._labels])
             _, train_error = session.run([self.train_step, self._cost],
                                          feed_dict={self._x: img_batch, self._y: label_batch,
-                                                    self._keep_prob: 0.5, self._keep_prob: 5e-4})
+                                                    self._keep_prob: 0.5, self._weight_decay: 5e-4})
             if (iter % 10 == 0):
-                val_img_batch, val_label_batch, val_id_batch = session.run([val_images, val_labels, val_ids])
-                accuracy_result, f1, loss, summary = session.run([self._accuracy, self._f1_score, self._cost],
-                                                                 feed_dict={self._x: val_img_batch,
-                                                                            self._xy: val_label_batch,
-                                                                            self._weight_decay: 0.0,
-                                                                            self._keep_prob: 1.0})
+                val_img_batch, val_label_batch = session.run([self._val_images, self._val_labels])
+                accuracy_result, f1, loss, summ = session.run(
+                    [self._accuracy, self._f1_score, self._cost, self.summary],
+                    feed_dict={self._x: val_img_batch,
+                               self._y: val_label_batch,
+                               self._weight_decay: 0.0,
+                               self._keep_prob: 1.0})
+
+                train_writer.add_summary(summ, iter)
 
                 print(
                     "Iteration: {0} - Training Loss: {1:.4f} Validation Loss: {2:.4f} ".format(iter, train_error, loss),
@@ -77,6 +94,9 @@ class CVD_Model:
 
             if (iter % self._iterations_per_epoch == 0):
                 print("****************End of Epoch {}**************".format(int(iter / self._iterations_per_epoch)))
+
+        coord.request_stop()
+        coord.join(threads)
 
     def _weight_variable(self, shape, name):
         my_var = tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
@@ -155,13 +175,13 @@ class CVD_Model:
             cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(self._result, self._y))
             tf.add_to_collection('losses', cross_entropy)
             self._cost = tf.add_n(tf.get_collection('losses'), name='total_loss')
-            tf.add_to_collection("summaries", tf.summary.scalar('cost', self._cost))
+            tf.summary.scalar('cost', self._cost)
 
             self.train_step = tf.train.AdamOptimizer(1e-4).minimize(self._cost)
 
             correct_prediction = tf.equal(self.prediction, self._y)
             self._accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-            tf.add_to_collection("summaries", tf.summary.scalar('accuracy', self._accuracy))
+            tf.summary.scalar('accuracy', self._accuracy)
 
             ## Measure the F1-Score
             true_positives = tf.reduce_sum(
@@ -174,8 +194,8 @@ class CVD_Model:
             recall = true_positives / (true_positives + false_negatives)
             self._f1_score = 2 * ((precision * recall) / (precision + recall))
 
-            tf.add_to_collection("summaries", tf.summary.scalar('F1-Score', self._f1_score))
-            tf.add_to_collection("summaries", tf.summary.scalar('Precision', precision))
-            tf.add_to_collection("summaries", tf.summary.scalar('Recall', recall))
+            tf.summary.scalar('F1-Score', self._f1_score)
+            tf.summary.scalar('Precision', precision)
+            tf.summary.scalar('Recall', recall)
 
         return

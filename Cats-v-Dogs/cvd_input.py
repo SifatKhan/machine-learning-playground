@@ -7,7 +7,7 @@ import re
 
 
 
-def read_training_images(path, batch_size,image_size,augment_data=True, submission_set=False):
+def read_images(path, batch_size, image_size, augment_data=True, submission_set=False):
     assert isdir(path) is True, "Data dir %r does not exist" % path
     file_list = [path+f for f in listdir(path) if isfile(join(path, f))]
     label_list = []
@@ -50,11 +50,11 @@ def read_training_images(path, batch_size,image_size,augment_data=True, submissi
 
     resized_img = tf.image.per_image_standardization(resized_img)
 
+    # Depends on the number of files and the training speed.
     min_queue_examples = batch_size * 100
     if(submission_set is False):
 
-        # Depends on the number of files and the training speed.
-        min_queue_examples = batch_size * 100
+
         images_batch, labels_batch, id_batch = tf.train.shuffle_batch([resized_img,label,id],
                                               batch_size=batch_size,
                                               capacity=min_queue_examples + 3 * batch_size,
@@ -64,6 +64,6 @@ def read_training_images(path, batch_size,image_size,augment_data=True, submissi
     else:
         images_batch, labels_batch, id_batch = tf.train.batch([resized_img, label, id],
                                                                       batch_size=batch_size,
-                                                                      capacity=min_queue_examples + 3 * batch_size,)
+                                                                      capacity=min_queue_examples + 3 * batch_size)
 
     return images_batch, labels_batch, id_batch
