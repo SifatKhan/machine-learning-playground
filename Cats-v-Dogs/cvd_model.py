@@ -14,16 +14,19 @@ class CVD_Model:
         self._validationdata_dir = validationdata_dir
         self._testdata_dir = testdata_dir
 
-        self._trainingset_size = 23000
-        self._batch_size = 128
-        self._img_size = 90
-
         if not os.path.exists(self._model_dir):
             os.makedirs(self._model_dir)
 
-        self._cropped_image_size = self._img_size - 10
-        self._crop_pool_img_size = int(self._cropped_image_size / 4)
+        self._trainingset_size = 23000
+        self._batch_size = 128
         self._iterations_per_epoch = int(math.ceil(self._trainingset_size / self._batch_size))
+
+        ## We are going to resize the images to 90x90 pixels, and then randomly crop out 10 pixels.
+        self._img_size = 90
+        self._cropped_image_size = self._img_size - 10
+
+        ## We are going to have 2 max pooling layers, so the final Conv layer will be 1/4th the size.
+        self._crop_pool_img_size = int(self._cropped_image_size / 4)
 
         self._x = tf.placeholder(tf.float32, [None, self._cropped_image_size, self._cropped_image_size, 3],
                                  name='Input')
@@ -52,8 +55,6 @@ class CVD_Model:
 
         self.summary = tf.summary.merge_all()
 
-
-
     def predict(self, images, session):
         return session.run(self.prediction, feed_dict={self._x: images, self._keep_prob: 1.0})
 
@@ -73,12 +74,13 @@ class CVD_Model:
         while (iter < num_iterations):
             iter += 1
             img_batch, label_batch = session.run([self._images, self._labels])
-            _, train_error = session.run([self.train_step, self._cost],
-                                         feed_dict={self._x: img_batch, self._y: label_batch,
-                                                    self._keep_prob: 0.5, self._weight_decay: 5e-4})
+            _, train_cost = session.run([self.train_step, self._cost],
+                                        feed_dict={self._x: img_batch, self._y: label_batch,
+                                                   self._keep_prob: 0.5, self._weight_decay: 1e-3})
             if (iter % 10 == 0):
+                ## Every 10 iterations, run the model over the validation set to see how we are doing...
                 val_img_batch, val_label_batch = session.run([self._val_images, self._val_labels])
-                accuracy_result, f1, loss, summ = session.run(
+                val_accuracy, f1, val_cost, summ = session.run(
                     [self._accuracy, self._f1_score, self._cost, self.summary],
                     feed_dict={self._x: val_img_batch,
                                self._y: val_label_batch,
@@ -88,9 +90,10 @@ class CVD_Model:
                 train_writer.add_summary(summ, iter)
 
                 print(
-                    "Iteration: {0} - Training Loss: {1:.4f} Validation Loss: {2:.4f} ".format(iter, train_error, loss),
+                    "Iteration: {0} - Training Loss: {1:.4f} Validation Loss: {2:.4f} ".format(iter, train_cost,
+                                                                                               val_cost),
                     end='')
-                print("Validation accuracy: {0:.4f}, F1 score: {1:.4f}".format(accuracy_result, f1))
+                print("Validation accuracy: {0:.4f}, F1 score: {1:.4f}".format(val_accuracy, f1))
 
             if (iter % self._iterations_per_epoch == 0):
                 print("****************End of Epoch {}**************".format(int(iter / self._iterations_per_epoch)))
@@ -99,16 +102,15 @@ class CVD_Model:
         coord.join(threads)
 
     def _weight_variable(self, shape, name):
-        my_var = tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
-        tf.add_to_collection('vars', my_var)
-        weight_loss = tf.mul(tf.nn.l2_loss(my_var), self._weight_decay, name='weight_loss')
+        var = tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
+        ## Regularize the weigths to reduce overfitting.
+        weight_loss = tf.mul(tf.nn.l2_loss(var), self._weight_decay, name='weight_loss')
         tf.add_to_collection('losses', weight_loss)
-        self.variables.append(my_var)
-        return my_var
+        self.variables.append(var)
+        return var
 
     def _bias_variable(self, shape, name):
         my_var = tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
-        tf.add_to_collection('vars', my_var)
         self.variables.append(my_var)
         return my_var
 
@@ -120,6 +122,7 @@ class CVD_Model:
             return tf.nn.max_pool(x, ksize=[1, 3, 3, 1],
                                   strides=[1, 2, 2, 1], padding='SAME')
 
+        ## First Convolutional Layer
         with tf.variable_scope('Conv1'):
             W_conv1 = self._weight_variable([8, 8, 3, 64], "W_conv1")
             b_conv1 = self._bias_variable([64], "b_conv1")
@@ -128,9 +131,11 @@ class CVD_Model:
         with tf.variable_scope('Pool1'):
             h1_pool = max_pool_2x2(h_conv1)
 
+        ## Local Response Normalization
         with tf.variable_scope('Norm1'):
             norm1 = tf.nn.lrn(h1_pool, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, name='norm1')
 
+        ## Second Conv Layer
         with tf.variable_scope('Conv2'):
             W_conv2 = self._weight_variable([4, 4, 64, 128], "W_conv2")
             b_conv2 = self._bias_variable([128], "b_conv2")
@@ -142,6 +147,7 @@ class CVD_Model:
         with tf.variable_scope('Pool2'):
             h2_pool = max_pool_2x2(norm2)
 
+        ## First Fully-connected layer
         with tf.variable_scope('FConn1'):
             W_fc1 = self._weight_variable([self._crop_pool_img_size * self._crop_pool_img_size * 128, 1024],
                                           name="W_fc1")
@@ -149,14 +155,17 @@ class CVD_Model:
             h2_pool_flat = tf.reshape(h2_pool, [-1, self._crop_pool_img_size * self._crop_pool_img_size * 128])
             h_fc1 = tf.nn.relu(tf.matmul(h2_pool_flat, W_fc1) + b_fc1)
 
+        ## Dropout layer to reduce overfitting
         with tf.variable_scope('Dropout1'):
             h_fc1_dropout = tf.nn.dropout(h_fc1, self._keep_prob)
 
+        ## Second Fully-connected layer
         with tf.variable_scope('FConn2'):
             W_fc2 = self._weight_variable([1024, 1024], name="W_fc2")
             b_fc2 = self._bias_variable([1024], name="b_fc2")
             h_fc2 = tf.nn.relu(tf.matmul(h_fc1_dropout, W_fc2) + b_fc2)
 
+        ## Second dropout layer
         with tf.variable_scope('Dropout2'):
             h_fc2_dropout = tf.nn.dropout(h_fc2, self._keep_prob)
 
@@ -174,6 +183,8 @@ class CVD_Model:
         with tf.variable_scope('Loss'):
             cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(self._result, self._y))
             tf.add_to_collection('losses', cross_entropy)
+
+            ## Add sum the cross entroy loss plus all the weight l2 losses.
             self._cost = tf.add_n(tf.get_collection('losses'), name='total_loss')
             tf.summary.scalar('cost', self._cost)
 
