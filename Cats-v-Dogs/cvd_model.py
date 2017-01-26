@@ -34,7 +34,7 @@ class CVDModel:
 
         self._images, self._labels, _ = cvd_input.training_images(self._img_size)
         self._val_images, self._val_labels, _ = cvd_input.validation_images(self._img_size)
-        self._test_images, _, self._test_ids = cvd_input.test_images(self._img_size)
+
 
         self.training_summary = tf.summary.merge(self._training_summaries)
         self.validation_summary = tf.summary.merge(self._validation_summaries)
@@ -133,7 +133,7 @@ class CVDModel:
 
             correct_prediction = tf.equal(self.prediction, self._y)
             self._accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-            tf.summary.scalar('accuracy', self._accuracy)
+            self._validation_summaries.append(tf.summary.scalar('accuracy', self._accuracy))
 
             ## Measure the F1-Score
             true_positives = tf.reduce_sum(
@@ -195,31 +195,3 @@ class CVDModel:
             if (iter % self._iterations_per_epoch == 0):
                 print("****************End of Epoch {}**************".format(int(iter / self._iterations_per_epoch)))
                 tf.train.Saver(self.variables).save(session, 'model/my-model')
-
-        iter = 0
-        myPrediction = np.array([])
-        myIds = np.array([])
-        while (iter < int(12500 / 100)):  #
-
-            if (iter % 5 == 0):
-                print("Evaluation iteration {}".format(iter))
-
-            iter += 1
-
-            test_img_batch, test_id_batch = session.run([self._test_images, self._test_ids])
-            _test_pred = session.run(self.softmax, feed_dict={self._x: test_img_batch,
-                                                              self._keep_prob: 1.0})
-
-            myPrediction = np.hstack((_test_pred[:,1],myPrediction))
-            myIds = np.hstack((test_id_batch.astype(int),myIds))
-
-
-        data = np.vstack((myIds, myPrediction)).T
-
-        df = pd.DataFrame(data=data, columns=['id', 'label'])
-        df.label = df.label.astype(float)
-        df.id = df.id.astype(int)
-        df.to_csv('output.csv', index=False)
-
-        coord.request_stop()
-        coord.join(threads)

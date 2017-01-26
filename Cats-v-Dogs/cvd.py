@@ -1,5 +1,5 @@
 import tensorflow as tf
-import cvdmodel
+import cvd_model
 from PIL import Image
 import numpy as np
 from os.path import exists
@@ -10,7 +10,7 @@ IMAGE_SIZE = 115
 if not exists(MODEL_DIR): makedirs(MODEL_DIR)
 
 
-model = cvdmodel.CVDModel(img_size=IMAGE_SIZE)
+model = cvd_model.CVDModel(img_size=IMAGE_SIZE)
 
 with tf.Session() as session:
     session.run(tf.global_variables_initializer())
@@ -20,7 +20,7 @@ with tf.Session() as session:
     if ckpt and ckpt.model_checkpoint_path:
         saver.restore(session, ckpt.model_checkpoint_path)
 
-    model.train(3, session)
+    model.train(35000, session)
 
     pic = Image.open("picture.jpg")
     data = np.asarray(np.asarray(pic, dtype="int32"))

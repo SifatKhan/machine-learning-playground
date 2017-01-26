@@ -39,7 +39,6 @@ def _read_images(paths, batch_size, image_size, augment_data=True, submission_se
     labels = tf.convert_to_tensor(label_list, dtype=tf.int32)
     ids = tf.convert_to_tensor(id_list, dtype=tf.int32)
 
-    ## I still have no idea how this input producer thing works, I just read the tutorial  ¯\_(ツ)_/¯
     filename_queue = tf.train.slice_input_producer([images, labels, ids])
     label = filename_queue[1]
     id = filename_queue[2]
