@@ -1,14 +1,32 @@
 import tensorflow as tf
-from os import listdir
-from os.path import isfile, join, isdir
+from os import listdir, makedirs
+from os.path import isfile, join, isdir, exists
 import re
 
+TRAIN_DIR = 'train/'
+VALIDATION_DIR = 'validate/'
+TEST_DIR = 'test/'
 
-def read_images(path, batch_size, image_size, augment_data=True, submission_set=False):
-    assert isdir(path) is True, "Data dir %r does not exist" % path
-    file_list = [path + f for f in listdir(path) if isfile(join(path, f))]
+
+def training_images(image_size):
+    return _read_images([TRAIN_DIR], 128, image_size, augment_data=True, submission_set=False)
+
+
+def validation_images(image_size):
+    return _read_images([VALIDATION_DIR], 128, image_size, augment_data=False, submission_set=False)
+
+
+def test_images(image_size):
+    return _read_images([TEST_DIR], 100, image_size, augment_data=False, submission_set=True)
+
+
+def _read_images(paths, batch_size, image_size, augment_data=True, submission_set=False):
     label_list = []
     id_list = []
+    file_list = []
+    for path in paths:
+        assert isdir(path) is True, "Data dir %r does not exist" % path
+        file_list += [path + f for f in listdir(path) if isfile(join(path, f))]
     for file in file_list:
         if ("dog" in file):
             label_list.append(1)
@@ -37,12 +55,12 @@ def read_images(path, batch_size, image_size, augment_data=True, submission_set=
         resized_img = tf.image.resize_images(decoded_img, [image_size, image_size])
 
         ## Randomly alter the images to enlarge the training set.
-        resized_img = tf.random_crop(resized_img, [image_size - 10, image_size - 10, 3])
+        resized_img = tf.random_crop(resized_img, [image_size - 15, image_size - 15, 3])
         resized_img = tf.image.random_brightness(resized_img, max_delta=63)
         resized_img = tf.image.random_contrast(resized_img, lower=0.2, upper=1.8)
         resized_img = tf.image.random_flip_left_right(resized_img)
     else:
-        resized_img = tf.image.resize_images(decoded_img, [image_size - 10, image_size - 10])
+        resized_img = tf.image.resize_images(decoded_img, [image_size - 15, image_size - 15])
 
     resized_img = tf.image.per_image_standardization(resized_img)
 

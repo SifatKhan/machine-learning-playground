@@ -1,15 +1,16 @@
 import tensorflow as tf
-import cvd_model
+import cvdmodel
 from PIL import Image
 import numpy as np
+from os.path import exists
+from os import makedirs
 
 MODEL_DIR = 'model/'
-TRAIN_DIR = 'train/'
-VALIDATION_DIR = 'validate/'
-TEST_DIR = 'test/'
+IMAGE_SIZE = 115
+if not exists(MODEL_DIR): makedirs(MODEL_DIR)
 
-model = cvd_model.CVD_Model(model_dir=MODEL_DIR, traindata_dir=TRAIN_DIR,
-                            validationdata_dir=VALIDATION_DIR, testdata_dir=TEST_DIR)
+
+model = cvdmodel.CVDModel(img_size=IMAGE_SIZE)
 
 with tf.Session() as session:
     session.run(tf.global_variables_initializer())
@@ -19,13 +20,13 @@ with tf.Session() as session:
     if ckpt and ckpt.model_checkpoint_path:
         saver.restore(session, ckpt.model_checkpoint_path)
 
-    model.train(5000, session)
+    model.train(3, session)
 
     pic = Image.open("picture.jpg")
     data = np.asarray(np.asarray(pic, dtype="int32"))
 
     x = tf.placeholder(tf.float32, [None, None, 3])
-    resized_img = tf.image.resize_images(x, [80, 80])
+    resized_img = tf.image.resize_images(x, [100, 100])
     resized_img = tf.image.per_image_standardization(resized_img)
 
     image = session.run(resized_img, feed_dict={x: data})
