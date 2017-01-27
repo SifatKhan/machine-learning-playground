@@ -36,15 +36,13 @@ with tf.Session() as session:
     while (iter < int(12500 / 100)):  #
 
         iter += 1
-
         if (iter % 5 == 0): print("Evaluation iteration {}".format(iter))
 
         test_img_batch, test_id_batch = session.run([test_images, test_ids])
-        prediction = model.predict_softmax(test_img_batch,session)
+        prediction = model.predict_softmax(test_img_batch, session)
 
         myPrediction = np.hstack((prediction[:, 1], myPrediction))
         myIds = np.hstack((test_id_batch.astype(int), myIds))
-
 
     ## Write the submission data into a CSV file.
     data = np.vstack((myIds, myPrediction)).T

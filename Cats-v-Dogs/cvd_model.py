@@ -1,9 +1,10 @@
 import tensorflow as tf
-import math
-import cvd_input
-import time
 import numpy as np
-import pandas as pd
+from PIL import Image
+import math
+import time
+
+import cvd_input
 
 
 class CVDModel:
@@ -32,13 +33,11 @@ class CVDModel:
         self._build_model()
         self._build_trainer()
 
-        self._images, self._labels, _ = cvd_input.training_images(self._img_size)
-        self._val_images, self._val_labels, _ = cvd_input.validation_images(self._img_size)
+        with tf.variable_scope('TrainingSet'):
+            self._images, self._labels, _ = cvd_input.training_images(self._img_size)
 
-
-        self.training_summary = tf.summary.merge(self._training_summaries)
-        self.validation_summary = tf.summary.merge(self._validation_summaries)
-
+        with tf.variable_scope('ValidationSet'):
+            self._val_images, self._val_labels, _ = cvd_input.validation_images(self._img_size)
 
     def _weight_variable(self, shape, name):
         var = tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
@@ -63,7 +62,7 @@ class CVDModel:
 
         ## First Convolutional Layer
         with tf.variable_scope('Conv1'):
-            W_conv1 = self._weight_variable([8, 8, 3, 96], "W_conv1")
+            W_conv1 = self._weight_variable([4, 4, 3, 96], "W_conv1")
             b_conv1 = self._bias_variable([96], "b_conv1")
             h_conv1 = tf.nn.relu(conv2d(self._x, W_conv1) + b_conv1)
 
@@ -76,7 +75,7 @@ class CVDModel:
 
         ## Second Conv Layer
         with tf.variable_scope('Conv2'):
-            W_conv2 = self._weight_variable([4, 4, 96, 192], "W_conv2")
+            W_conv2 = self._weight_variable([3, 3, 96, 192], "W_conv2")
             b_conv2 = self._bias_variable([192], "b_conv2")
             h_conv2 = tf.nn.relu(conv2d(norm1, W_conv2) + b_conv2, name="h_conv2")
 
@@ -152,6 +151,16 @@ class CVDModel:
 
         return
 
+    def predict_from_file(self, image_filename, session):
+        pic = Image.open(image_filename)
+        data = np.asarray(pic, dtype="int32")
+
+        x = tf.placeholder(tf.float32, [None, None, 3])
+        resized_img = tf.image.resize_images(x, [100, 100])
+        resized_img = tf.image.per_image_standardization(resized_img)
+        image = session.run(resized_img, feed_dict={x: data})
+        return self.predict([image], session)
+
     def predict(self, images, session):
         return session.run(self.prediction, feed_dict={self._x: images, self._keep_prob: 1.0})
 
@@ -160,6 +169,8 @@ class CVDModel:
 
     def train(self, num_iterations, session):
 
+        training_summary = tf.summary.merge(self._training_summaries)
+        validation_summary = tf.summary.merge(self._validation_summaries)
         now = time.time()
         log_dir = '/tmp/cvd_logs/{}'.format(str(int(now)))
         train_writer = tf.summary.FileWriter(log_dir, session.graph)
@@ -171,15 +182,15 @@ class CVDModel:
         while (iter < num_iterations):
             iter += 1
             img_batch, label_batch = session.run([self._images, self._labels])
-            _, train_cost,training_summ = session.run([self.train_step, self._cost,self.training_summary],
-                                        feed_dict={self._x: img_batch, self._y: label_batch,
-                                                   self._keep_prob: 0.5, self._weight_decay: 1e-3})
+            _, train_cost, training_summ = session.run([self.train_step, self._cost, training_summary],
+                                                       feed_dict={self._x: img_batch, self._y: label_batch,
+                                                                  self._keep_prob: 0.5, self._weight_decay: 1e-3})
 
             if (iter % 10 == 0):
                 ## Every 10 iterations, run the model over the validation set to see how we are doing...
                 val_img_batch, val_label_batch = session.run([self._val_images, self._val_labels])
                 val_accuracy, f1, val_cost, summ = session.run(
-                    [self._accuracy, self._f1_score, self._cost, self.validation_summary],
+                    [self._accuracy, self._f1_score, self._cost, validation_summary],
                     feed_dict={self._x: val_img_batch,
                                self._y: val_label_batch,
                                self._weight_decay: 0.0,
@@ -189,9 +200,12 @@ class CVDModel:
                 train_writer.add_summary(training_summ, iter)
 
                 print("Iter: {0} - Training Loss: {1:.4f} ".format(iter, train_cost), end='')
-                print("Validation Loss: {0:.4f} ".format(val_cost),end='')
+                print("Validation Loss: {0:.4f} ".format(val_cost), end='')
                 print("Validation Accuracy: {0:.4f}, F1 score: {1:.4f}".format(val_accuracy, f1))
 
             if (iter % self._iterations_per_epoch == 0):
                 print("****************End of Epoch {}**************".format(int(iter / self._iterations_per_epoch)))
                 tf.train.Saver(self.variables).save(session, 'model/my-model')
+
+        coord.request_stop()
+        coord.join(threads)
