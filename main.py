@@ -4,14 +4,14 @@ import pandas as pd
 import numpy as np
 import flask
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='HousePrices/static/',static_url_path='')
 
-dataframe = pd.read_csv('data/train.csv')
+dataframe = pd.read_csv('HousePrices/data/train.csv')
 
 
 @app.route("/")
 def hello():
-    return send_file("static/index.html")
+    return send_file("HousePrices/static/index.html")
 
 
 @app.route("/api/neighborhood/counts")

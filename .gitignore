@@ -8,11 +8,11 @@ Titanic/output.csv
 
 *~lock.*
 
-Cats-v-Dogs/train*
-Cats-v-Dogs/test*
-Cats-v-Dogs/validate*
-Cats-v-Dogs/model
-Cats-v-Dogs/*output*
+cats_vs_dogs/train*
+cats_vs_dogs/test*
+cats_vs_dogs/validate*
+cats_vs_dogs/model
+cats_vs_dogs/*output*
 
 cifar10/cifar-10-batches-py/
 

@@ -26,7 +26,7 @@ angular.
 angular.
   module('myApp').
   component('neighborhoodList', {
-    templateUrl: 'static/app/neighborhood-list/neighborhood-list.template.html',
+    templateUrl: 'app/neighborhood-list/neighborhood-list.template.html',
     controller: ['$scope','$http','$window',
     function NeighborhoodListController($scope,$http,$window) {
 
@@ -62,7 +62,7 @@ angular.
   angular.
   module('myApp').
   component('yearlyData', {
-    templateUrl: 'static/app/yearly-data/yearly-data.template.html',
+    templateUrl: 'app/yearly-data/yearly-data.template.html',
     controller: ['$scope','$http','$window',
     function YearlyDataController($scope,$http,$window) {
 
@@ -103,7 +103,7 @@ angular.
   angular.
   module('myApp').
   component('pricingData', {
-    templateUrl: 'static/app/pricing-data/pricing-data.template.html',
+    templateUrl: 'app/pricing-data/pricing-data.template.html',
     controller: ['$scope','$http','$window',
     function PricingDataController($scope,$http,$window) {
 
