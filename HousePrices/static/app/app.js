@@ -70,7 +70,7 @@ angular.
 
               layout = {
             yaxis: {title: 'Count'},
-            xaxis: {title: 'Year'},
+            xaxis: {title: 'Year Sold'},
             title: 'Houses Sold per Year'
         };
         Plotly.plot('yearlyCount',[response.data],layout)
@@ -81,7 +81,7 @@ angular.
       layout = {
             yaxis: {title: '$USD'},
             xaxis: {title: 'Year Sold'},
-            title: 'Average Sale Price by Year'
+            title: 'Average Sale Price per Year'
         };
         Plotly.plot('yearlyMean',[response.data],layout)
 
