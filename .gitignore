@@ -6,6 +6,8 @@ Titanic/mytrain.csv
 Titanic/output.csv
 *__pycache__
 
+*~lock.*
+
 Cats-v-Dogs/train*
 Cats-v-Dogs/test*
 Cats-v-Dogs/validate*
