@@ -10,8 +10,8 @@ angular.
         when('/neighborhoods', {
           template: '<neighborhood-list></neighborhood-list>'
         }).
-        when('/yearlyAvg', {
-          template: '<yearly-data></yearly-data>'
+        when('/trends', {
+          template: '<trends></trends>'
         }).
         when('/pricingData', {
           template: '<pricing-data></pricing-data>'
@@ -61,10 +61,10 @@ angular.
 
   angular.
   module('myApp').
-  component('yearlyData', {
-    templateUrl: 'app/yearly-data/yearly-data.template.html',
+  component('trends', {
+    templateUrl: 'app/trends/trends.template.html',
     controller: ['$scope','$http','$window',
-    function YearlyDataController($scope,$http,$window) {
+    function TrendsController($scope,$http,$window) {
 
       $http.get('/api/yearly/count').then(function(response) {
 
@@ -74,6 +74,17 @@ angular.
             title: 'Houses Sold per Year'
         };
         Plotly.plot('yearlyCount',[response.data],layout)
+
+      });
+
+      $http.get('/api/monthly/count').then(function(response) {
+
+              layout = {
+            yaxis: {title: 'Count'},
+            xaxis: {title: 'Month Sold', tickformat: "%B", dtick:"M1" },
+            title: 'Houses Sold by Month'
+        };
+        Plotly.plot('monthlyCount',[response.data],layout)
 
       });
 
@@ -90,6 +101,9 @@ angular.
             Plotly.Plots.resize( div)
 
             div = Plotly.d3.select("div[id='yearlyCount']").node();
+            Plotly.Plots.resize( div)
+
+            div = Plotly.d3.select("div[id='monthlyCount']").node();
             Plotly.Plots.resize( div)
 
         });

@@ -110,6 +110,7 @@ def correlation():
 
 
 
+
 @app.route("/api/yearly/avg")
 def yearly_avg():
     data = {}
@@ -129,6 +130,19 @@ def yearly_count():
 
     data['x'] = df.groupby('YrSold').YrSold.count().index.astype(str).tolist()
     data['y'] = df.groupby('YrSold').YrSold.count().tolist()
+
+    return flask.jsonify(data)
+
+
+@app.route("/api/monthly/count")
+def monthly_count():
+    data = {}
+    df = dataframe
+    df['MoSold'] = pd.to_datetime(dataframe.MoSold, format='%m')
+
+    data['x'] = df.groupby('MoSold').MoSold.count().index.astype(str).tolist()
+    data['y'] = df.groupby('MoSold').MoSold.count().tolist()
+    data['type'] = 'bar'
 
     return flask.jsonify(data)
 
