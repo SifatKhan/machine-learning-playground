@@ -4,8 +4,8 @@ import pandas as pd
 import houselist as hl
 import time
 
-pd.read_csv('train.csv').sample(frac=1).to_csv('train.csv',index=False)
-house_list = hl.HouseList(trainfile='train.csv',testfile='test.csv',use_validationset=False)
+pd.read_csv('data/train.csv').sample(frac=1).to_csv('data/train.csv',index=False)
+house_list = hl.HouseList(trainfile='data/train.csv',testfile='data/test.csv',use_validationset=False)
 
 def weight_variable(shape,name):
     return tf.get_variable(
@@ -116,6 +116,6 @@ with tf.Session() as session:
     df = pd.DataFrame(data=data,columns = ['Id','SalePrice'])
     df.SalePrice = df.SalePrice.astype(float)
     df.Id = df.Id.astype(int)
-    df.to_csv('output.csv', index=False)
+    df.to_csv('data/output.csv', index=False)
 
     coord.request_stop()

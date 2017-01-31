@@ -6,7 +6,7 @@ import flask
 
 app = Flask(__name__)
 
-dataframe = pd.read_csv('train.csv')
+dataframe = pd.read_csv('data/train.csv')
 
 
 @app.route("/")
@@ -44,6 +44,18 @@ def neighborhood_boxplot():
     return flask.jsonify(data)
 
 
+@app.route("/api/pricing/grlivarea")
+def pricing_grlivarea():
+    data = {}
+    data['type'] = 'scatter'
+    data['mode'] = 'markers'
+    df = dataframe[(dataframe['GrLivArea'].notnull())][['GrLivArea', 'SalePrice']]
+    df = df[(np.abs(stats.zscore(df)) < 4).all(axis=1)] # Remove outliers beyond 4 sigmas
+    data['y'] = df[(df['GrLivArea'].notnull())]['SalePrice'].values.tolist()
+    data['x'] = df[(df['GrLivArea'].notnull())]['GrLivArea'].values.tolist()
+    return flask.jsonify([data])
+
+
 @app.route("/api/pricing/lotfrontage")
 def pricing_lotfrontage():
     data = {}
@@ -71,6 +83,20 @@ def pricing_lotarea():
     return flask.jsonify([data])
 
 
+@app.route("/api/pricing/histogram")
+def histogram():
+    data = {}
+    data['type'] = 'histogram'
+    data['boxmean'] = True
+    data['x'] = dataframe.SalePrice.values.tolist()
+
+    response = {}
+    response['data'] = [data]
+    response['mean'] = dataframe.SalePrice.mean()
+
+    return flask.jsonify(response)
+
+
 @app.route("/api/correlation")
 def correlation():
     data = {}
@@ -83,11 +109,26 @@ def correlation():
     return flask.jsonify([data])
 
 
-@app.route("/api/yearlyAvg")
+
+@app.route("/api/yearly/avg")
 def yearly_avg():
     data = {}
-    data['x'] = dataframe.groupby('YrSold').SalePrice.mean().index.astype(str).tolist()
+    df = dataframe
+    df['YrSold'] = pd.to_datetime(dataframe.YrSold, format='%Y')
+    data['x'] = df.groupby('YrSold').SalePrice.mean().index.astype(str).tolist()
     data['y'] = dataframe.groupby('YrSold').SalePrice.mean().tolist()
+
+    return flask.jsonify(data)
+
+
+@app.route("/api/yearly/count")
+def yearly_count():
+    data = {}
+    df = dataframe
+    df['YrSold'] = pd.to_datetime(dataframe.YrSold, format='%Y')
+
+    data['x'] = df.groupby('YrSold').YrSold.count().index.astype(str).tolist()
+    data['y'] = df.groupby('YrSold').YrSold.count().tolist()
 
     return flask.jsonify(data)
 

@@ -41,7 +41,8 @@ angular.
       $http.get('/api/neighborhood/boxplot').then(function(response) {
         layout = {
             yaxis: {title: '$USD'},
-            title: 'Sale Prices by Neighborhood'
+            title: 'Sale Prices by Neighborhood',
+            height: 800
         };
         Plotly.plot('boxplot',response.data,layout)
 
@@ -65,14 +66,35 @@ angular.
     controller: ['$scope','$http','$window',
     function YearlyDataController($scope,$http,$window) {
 
-      $http.get('/api/yearlyAvg').then(function(response) {
-        Plotly.plot('yearlyMean',[response.data])
+      $http.get('/api/yearly/count').then(function(response) {
+
+              layout = {
+            yaxis: {title: 'Count'},
+            xaxis: {title: 'Year'},
+            title: 'Houses Sold per Year'
+        };
+        Plotly.plot('yearlyCount',[response.data],layout)
+
+      });
+
+      $http.get('/api/yearly/avg').then(function(response) {
+      layout = {
+            yaxis: {title: '$USD'},
+            xaxis: {title: 'Year Sold'},
+            title: 'Average Sale Price by Year'
+        };
+        Plotly.plot('yearlyMean',[response.data],layout)
 
         angular.element($window).bind('resize',function(){
             var div = Plotly.d3.select("div[id='yearlyMean']").node();
             Plotly.Plots.resize( div)
 
+            div = Plotly.d3.select("div[id='yearlyCount']").node();
+            Plotly.Plots.resize( div)
+
         });
+
+
       });
     }]
   });
@@ -95,6 +117,44 @@ angular.
         Plotly.plot('lotFrontage',response.data,layout);
       });
 
+
+      $http.get('/api/pricing/histogram').then(function(response) {
+        var mean = response.data.mean;
+        var data = response.data.data;
+
+        layout = {
+            yaxis: {title: '$USD'},
+            title: 'Sale Prices',
+            annotations: [
+            { text: 'Mean: '+mean,
+              x: mean,
+              y: 150
+            }
+            ],
+            shapes: [
+            {
+              x0: mean,
+              x1: mean,
+              xref: 'x',
+              y1: 150,
+              y0: 0
+            }
+            ]
+        };
+
+
+        Plotly.plot('histogram',data,layout);
+      });
+
+      $http.get('/api/pricing/grlivarea').then(function(response) {
+        layout = {
+            yaxis: {title: '$USD'},
+            xaxis: {title: 'Area in feet²'},
+            title: 'Above ground living area'
+        };
+        Plotly.plot('grlivArea',response.data,layout);
+      });
+
       $http.get('/api/pricing/lotarea').then(function(response) {
         layout = {
             yaxis: {title: '$USD'},
@@ -108,6 +168,12 @@ angular.
             Plotly.Plots.resize( div)
 
             div = Plotly.d3.select("div[id='lotFrontage']").node();
+            Plotly.Plots.resize( div)
+
+            div = Plotly.d3.select("div[id='grlivArea']").node();
+            Plotly.Plots.resize( div)
+
+            div = Plotly.d3.select("div[id='histogram']").node();
             Plotly.Plots.resize( div)
         });
       });
@@ -140,9 +206,7 @@ angular.
             Plotly.Plots.resize( heat)
         });
 
-
       });
-
 
     }]
   });
