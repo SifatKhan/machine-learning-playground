@@ -32,14 +32,17 @@ def neighborhood_boxplot():
         neigh = {}
         neigh['name'] = n
         neigh['y'] = dataframe[dataframe['Neighborhood'] == n].SalePrice.tolist()
+        neigh['median'] = dataframe[dataframe['Neighborhood'] == n].SalePrice.median()
         neigh['type'] = 'box'
         data.append(neigh)
 
+    data = sorted(data, key=lambda m: m['median'],reverse=True)
     allpoints = {}
     allpoints['name'] = 'All'
     allpoints['y'] = dataframe.SalePrice.tolist()
     allpoints['type'] = 'box'
     data.append(allpoints)
+    lol = 23
 
     return flask.jsonify(data)
 
