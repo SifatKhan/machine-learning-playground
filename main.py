@@ -24,7 +24,7 @@ model = cvd_model.CVDModel(img_size=IMAGE_SIZE)
 def maybe_download_and_extract():
     """Download and extract the tarball from Alex's website."""
     dest_directory = MODEL_DIR
-    DATA_URL = 'https://dl.dropbox.com/s/q5il0pk0bgr3t8m/model.tar.gz'
+    DATA_URL = 'https://dl.dropbox.com/s/40lxdtiqwfpzymb/model.tar.gz'
     if not exists(dest_directory):
         makedirs(dest_directory)
     filename = DATA_URL.split('/')[-1]
