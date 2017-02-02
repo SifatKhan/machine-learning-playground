@@ -5,6 +5,7 @@ import numpy as np
 import flask
 from os import makedirs
 from os.path import exists
+from tempfile import NamedTemporaryFile
 
 import tensorflow as tf
 
@@ -43,9 +44,10 @@ def hello():
 @app.route('/api/imageupload', methods=['POST'])
 def upload():
     file = request.files['file']
-    file.save("uploadedimage.jpg")
+    temp = NamedTemporaryFile(mode='w+b',suffix='jpg')
+    file.save("uploadedimage")
 
-    return flask.jsonify(results=cat_or_dog("uploadedimage.jpg"))
+    return flask.jsonify(results=cat_or_dog(file))
 
 
 @app.route("/api/neighborhood/counts")

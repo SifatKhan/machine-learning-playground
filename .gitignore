@@ -11,7 +11,7 @@ HousePrices/Titanic/output.csv
 HousePrices/cats_vs_dogs/train*
 HousePrices/cats_vs_dogs/test*
 HousePrices/cats_vs_dogs/validate/
-HousePrices/cats_vs_dogs/model/
+HousePrices/cats_vs_dogs/model/*gz
 HousePrices/cats_vs_dogs/output*
 HousePrices/cats_vs_dogs/test-mini
 uploadedimage.jpg
