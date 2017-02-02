@@ -1,4 +1,4 @@
-var app = angular.module('myApp', ['ngRoute','ngFileUpload']);
+var app = angular.module('myApp', ['ngRoute', 'ngFileUpload']);
 
 angular.module('myApp').config(['$locationProvider', '$routeProvider',
     function config($locationProvider, $routeProvider) {
@@ -57,13 +57,13 @@ angular.module('myApp').component('trends', {
                 angular.element($window).unbind('resize');
                 angular.element($window).bind('resize', function () {
                     var div = Plotly.d3.select("div[id='yearlyMean']").node();
-                    Plotly.Plots.resize(div)
+                    if (div != null) Plotly.Plots.resize(div);
 
                     div = Plotly.d3.select("div[id='yearlyCount']").node();
-                    Plotly.Plots.resize(div)
+                    if (div != null) Plotly.Plots.resize(div);
 
                     div = Plotly.d3.select("div[id='monthlyCount']").node();
-                    Plotly.Plots.resize(div)
+                    if (div != null) Plotly.Plots.resize(div);
 
                 });
 
@@ -144,13 +144,13 @@ angular.module('myApp').component('pricingData', {
                     Plotly.Plots.resize(div);
 
                     div = Plotly.d3.select("div[id='lotFrontage']").node();
-                    Plotly.Plots.resize(div);
+                    if (div != null) Plotly.Plots.resize(div);
 
                     div = Plotly.d3.select("div[id='grlivArea']").node();
-                    Plotly.Plots.resize(div);
+                    if (div != null) Plotly.Plots.resize(div);
 
                     div = Plotly.d3.select("div[id='histogram']").node();
-                    Plotly.Plots.resize(div);
+                    if (div != null) Plotly.Plots.resize(div);
                 });
             });
 
@@ -176,8 +176,8 @@ angular.module('myApp').component('correlations', {
 
                 angular.element($window).unbind('resize');
                 angular.element($window).bind('resize', function () {
-                    var heat = Plotly.d3.select("div[id='heatmap']").node();
-                    Plotly.Plots.resize(heat);
+                    var div = Plotly.d3.select("div[id='heatmap']").node();
+                    if (div != null)  Plotly.Plots.resize(div);
                 });
 
             });

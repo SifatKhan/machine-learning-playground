@@ -4,7 +4,7 @@ from PIL import Image
 import math
 import time
 
-import cvd_input
+import HousePrices.cats_vs_dogs.cvd_input as cvd_input
 
 
 class CVDModel:
@@ -33,11 +33,6 @@ class CVDModel:
         self._build_model()
         self._build_trainer()
 
-        with tf.variable_scope('TrainingSet'):
-            self._images, self._labels, _ = cvd_input.training_images(self._img_size)
-
-        with tf.variable_scope('ValidationSet'):
-            self._val_images, self._val_labels, _ = cvd_input.validation_images(self._img_size)
 
     def _weight_variable(self, shape, name):
         var = tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
@@ -168,6 +163,12 @@ class CVDModel:
         return session.run(self.softmax, feed_dict={self._x: images, self._keep_prob: 1.0})
 
     def train(self, num_iterations, session):
+
+        with tf.variable_scope('TrainingSet'):
+            self._images, self._labels, _ = cvd_input.training_images(self._img_size)
+
+        with tf.variable_scope('ValidationSet'):
+            self._val_images, self._val_labels, _ = cvd_input.validation_images(self._img_size)
 
         training_summary = tf.summary.merge(self._training_summaries)
         validation_summary = tf.summary.merge(self._validation_summaries)

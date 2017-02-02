@@ -20,13 +20,12 @@ angular.module('myApp').component('neighborhoodList', {
                 Plotly.plot('boxplot', response.data, layout, {displayModeBar: false})
 
                 angular.element($window).unbind('resize');
-
                 angular.element($window).bind('resize', function () {
                     var div = Plotly.d3.select("div[id='graph']").node();
-                    Plotly.Plots.resize(div)
+                    if (div != null) Plotly.Plots.resize(div);
 
                     div = Plotly.d3.select("div[id='boxplot']").node();
-                    Plotly.Plots.resize(div)
+                    if (div != null) Plotly.Plots.resize(div);
 
                 });
             });

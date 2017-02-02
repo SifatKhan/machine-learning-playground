@@ -5,13 +5,13 @@ angular.module('myApp').component('imageClassifier', {
     controller: ['$scope', 'Upload', '$timeout', function ($scope, Upload, $timeout) {
         $scope.uploadPic = function (file) {
             file.upload = Upload.upload({
-                url: 'https://angular-file-upload-cors-srv.appspot.com/upload',
+                url: './api/imageupload',
                 data: {file: file},
             });
 
             file.upload.then(function (response) {
                 $timeout(function () {
-                    file.result = response.data;
+                    file.result = response.data.results;
                 });
             }, function (response) {
                 if (response.status > 0)

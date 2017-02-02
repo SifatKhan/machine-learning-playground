@@ -1,8 +1,34 @@
-from flask import Flask, send_file
+from flask import Flask, send_file, request
 from scipy import stats
 import pandas as pd
 import numpy as np
 import flask
+from os import makedirs
+from os.path import exists
+
+import tensorflow as tf
+
+import HousePrices.cats_vs_dogs.cvd_model as cvd_model
+
+MODEL_DIR = 'HousePrices/cats_vs_dogs/model/'
+IMAGE_SIZE = 115
+if not exists(MODEL_DIR): makedirs(MODEL_DIR)
+model = cvd_model.CVDModel(img_size=IMAGE_SIZE)
+
+session = tf.Session()
+session.run(tf.global_variables_initializer())
+saver = tf.train.Saver(model.variables)
+
+ckpt = tf.train.get_checkpoint_state(MODEL_DIR)
+saver.restore(session, ckpt.model_checkpoint_path)
+
+def cat_or_dog(file):
+    prediction = model.predict_from_file(file, session)
+    if (prediction == 0):
+        return "CAT!".format(file)
+    else:
+        return "DOG!".format(file)
+
 
 app = Flask(__name__, static_folder='HousePrices/static/',static_url_path='')
 
@@ -12,6 +38,14 @@ dataframe = pd.read_csv('HousePrices/data/train.csv')
 @app.route("/")
 def hello():
     return send_file("HousePrices/static/index.html")
+
+
+@app.route('/api/imageupload', methods=['POST'])
+def upload():
+    file = request.files['file']
+    file.save("uploadedimage.jpg")
+
+    return flask.jsonify(results=cat_or_dog("uploadedimage.jpg"))
 
 
 @app.route("/api/neighborhood/counts")
