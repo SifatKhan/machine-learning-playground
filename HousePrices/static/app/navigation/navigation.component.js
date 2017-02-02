@@ -1,5 +1,8 @@
 angular.module('myApp').component('sideNavigation', {
     templateUrl: 'app/navigation/side-navigation.template.html',
+    bindings: {
+      context: '@'
+    },
     controller: ['$scope',
         function NavigationController($scope) {
 
@@ -13,3 +16,4 @@ angular.module('myApp').component('topNavigation', {
 
         }]
 });
+

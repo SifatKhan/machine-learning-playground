@@ -1,4 +1,4 @@
-var app = angular.module('myApp', ['ngRoute']);
+var app = angular.module('myApp', ['ngRoute','ngFileUpload']);
 
 angular.module('myApp').config(['$locationProvider', '$routeProvider',
     function config($locationProvider, $routeProvider) {
@@ -12,6 +12,8 @@ angular.module('myApp').config(['$locationProvider', '$routeProvider',
             template: '<pricing-data></pricing-data>'
         }).when('/correlations', {
             template: '<correlations></correlations>'
+        }).when('/classifier', {
+            template: '<image-classifier></image-classifier>'
         }).otherwise('/neighborhoods');
     }
 ]);
