@@ -151,7 +151,7 @@ class CVDModel:
         data = np.asarray(pic, dtype="int32")
 
         x = tf.placeholder(tf.float32, [None, None, 3])
-        resized_img = tf.image.resize_images(x, [100, 100])
+        resized_img = tf.image.resize_images(x, [self._cropped_img_size, self._cropped_img_size])
         resized_img = tf.image.per_image_standardization(resized_img)
         image = session.run(resized_img, feed_dict={x: data})
         return self.predict([image], session)
