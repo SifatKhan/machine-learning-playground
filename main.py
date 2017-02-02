@@ -43,7 +43,7 @@ def maybe_download_and_extract():
     tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
 
-maybe_download_and_extract()
+#maybe_download_and_extract()
 
 session = tf.Session()
 session.run(tf.global_variables_initializer())
