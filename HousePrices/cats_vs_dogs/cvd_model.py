@@ -84,8 +84,8 @@ class CVDModel:
         ## We have 2 max pooling layers, so the final Conv layer will be 1/4th the size.
         crop_pool_img_size = int(self._cropped_img_size / 4)
         with tf.variable_scope('FConn1'):
-            W_fc1 = self._weight_variable([crop_pool_img_size * crop_pool_img_size * 128, 512], name="W_fc1")
-            b_fc1 = self._bias_variable([512], name="b_fc1")
+            W_fc1 = self._weight_variable([crop_pool_img_size * crop_pool_img_size * 128, 256], name="W_fc1")
+            b_fc1 = self._bias_variable([256], name="b_fc1")
             h2_pool_flat = tf.reshape(h2_pool, [-1, crop_pool_img_size * crop_pool_img_size * 128])
             h_fc1 = tf.nn.relu(tf.matmul(h2_pool_flat, W_fc1) + b_fc1)
 
@@ -95,8 +95,8 @@ class CVDModel:
 
         ## Second Fully-connected layer
         with tf.variable_scope('FConn2'):
-            W_fc2 = self._weight_variable([512, 512], name="W_fc2")
-            b_fc2 = self._bias_variable([512], name="b_fc2")
+            W_fc2 = self._weight_variable([256, 256], name="W_fc2")
+            b_fc2 = self._bias_variable([256], name="b_fc2")
             h_fc2 = tf.nn.relu(tf.matmul(h_fc1_dropout, W_fc2) + b_fc2)
 
         ## Second dropout layer
@@ -104,7 +104,7 @@ class CVDModel:
             h_fc2_dropout = tf.nn.dropout(h_fc2, self._keep_prob)
 
         with tf.variable_scope('Output'):
-            W_output = self._weight_variable([512, 2], "W_output")
+            W_output = self._weight_variable([256, 2], "W_output")
             b_output = self._bias_variable([2], "b_output")
 
             self._result = tf.matmul(h_fc2_dropout, W_output) + b_output

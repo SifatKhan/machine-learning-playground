@@ -3,9 +3,13 @@ from scipy import stats
 import pandas as pd
 import numpy as np
 import flask
-from os import makedirs
-from os.path import exists
+from os import makedirs, stat
+from os.path import exists, join
 from tempfile import NamedTemporaryFile
+import sys
+import tarfile
+
+from six.moves import urllib
 
 import tensorflow as tf
 
@@ -16,12 +20,38 @@ IMAGE_SIZE = 115
 if not exists(MODEL_DIR): makedirs(MODEL_DIR)
 model = cvd_model.CVDModel(img_size=IMAGE_SIZE)
 
+
+def maybe_download_and_extract():
+    """Download and extract the tarball from Alex's website."""
+    dest_directory = MODEL_DIR
+    DATA_URL = 'https://dl.dropbox.com/s/q5il0pk0bgr3t8m/model.tar.gz'
+    if not exists(dest_directory):
+        makedirs(dest_directory)
+    filename = DATA_URL.split('/')[-1]
+    filepath = join(dest_directory, filename)
+    if not exists(filepath):
+        def _progress(count, block_size, total_size):
+            sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename,
+                                                             float(count * block_size) / float(total_size) * 100.0))
+            sys.stdout.flush()
+
+        filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
+        print()
+        statinfo = stat(filepath)
+        print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
+
+    tarfile.open(filepath, 'r:gz').extractall(dest_directory)
+
+
+maybe_download_and_extract()
+
 session = tf.Session()
 session.run(tf.global_variables_initializer())
 saver = tf.train.Saver(model.variables)
 
 ckpt = tf.train.get_checkpoint_state(MODEL_DIR)
 saver.restore(session, ckpt.model_checkpoint_path)
+
 
 def cat_or_dog(file):
     prediction = model.predict_from_file(file, session)
@@ -31,7 +61,7 @@ def cat_or_dog(file):
         return "DOG!".format(file)
 
 
-app = Flask(__name__, static_folder='HousePrices/static/',static_url_path='')
+app = Flask(__name__, static_folder='HousePrices/static/', static_url_path='')
 
 dataframe = pd.read_csv('HousePrices/data/train.csv')
 
@@ -44,7 +74,7 @@ def hello():
 @app.route('/api/imageupload', methods=['POST'])
 def upload():
     file = request.files['file']
-    temp = NamedTemporaryFile(mode='w+b',suffix='jpg')
+    temp = NamedTemporaryFile(mode='w+b', suffix='jpg')
     file.save("uploadedimage")
 
     return flask.jsonify(results=cat_or_dog(file))
@@ -72,7 +102,7 @@ def neighborhood_boxplot():
         neigh['type'] = 'box'
         data.append(neigh)
 
-    data = sorted(data, key=lambda m: m['median'],reverse=True)
+    data = sorted(data, key=lambda m: m['median'], reverse=True)
     allpoints = {}
     allpoints['name'] = 'All'
     allpoints['y'] = dataframe.SalePrice.tolist()
@@ -89,7 +119,7 @@ def pricing_grlivarea():
     data['type'] = 'scatter'
     data['mode'] = 'markers'
     df = dataframe[(dataframe['GrLivArea'].notnull())][['GrLivArea', 'SalePrice']]
-    df = df[(np.abs(stats.zscore(df)) < 4).all(axis=1)] # Remove outliers beyond 4 sigmas
+    df = df[(np.abs(stats.zscore(df)) < 4).all(axis=1)]  # Remove outliers beyond 4 sigmas
     data['y'] = df[(df['GrLivArea'].notnull())]['SalePrice'].values.tolist()
     data['x'] = df[(df['GrLivArea'].notnull())]['GrLivArea'].values.tolist()
     return flask.jsonify([data])
@@ -101,7 +131,7 @@ def pricing_lotfrontage():
     data['type'] = 'scatter'
     data['mode'] = 'markers'
     df = dataframe[(dataframe['LotFrontage'].notnull())][['LotFrontage', 'SalePrice']]
-    df = df[(np.abs(stats.zscore(df)) < 4).all(axis=1)] # Remove outliers beyond 4 sigmas
+    df = df[(np.abs(stats.zscore(df)) < 4).all(axis=1)]  # Remove outliers beyond 4 sigmas
     data['y'] = df[(df['LotFrontage'].notnull())]['SalePrice'].values.tolist()
     data['x'] = df[(df['LotFrontage'].notnull())]['LotFrontage'].values.tolist()
     return flask.jsonify([data])
@@ -113,8 +143,8 @@ def pricing_lotarea():
     data['type'] = 'scatter'
     data['mode'] = 'markers'
 
-    df = dataframe[(dataframe['LotFrontage'].notnull())][['LotArea','SalePrice']]
-    df = df[(np.abs(stats.zscore(df)) < 4).all(axis=1)] # Remove outliers beyond 4 sigmas
+    df = dataframe[(dataframe['LotFrontage'].notnull())][['LotArea', 'SalePrice']]
+    df = df[(np.abs(stats.zscore(df)) < 4).all(axis=1)]  # Remove outliers beyond 4 sigmas
 
     data['y'] = df['SalePrice'].values.tolist()
     data['x'] = df['LotArea'].values.tolist()
@@ -146,8 +176,6 @@ def correlation():
     data['y'] = df.corr().index.tolist()
 
     return flask.jsonify([data])
-
-
 
 
 @app.route("/api/yearly/avg")
