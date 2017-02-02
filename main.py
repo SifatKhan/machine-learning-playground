@@ -16,7 +16,7 @@ import tensorflow as tf
 import HousePrices.cats_vs_dogs.cvd_model as cvd_model
 
 MODEL_DIR = 'HousePrices/cats_vs_dogs/model/'
-IMAGE_SIZE = 115
+IMAGE_SIZE = 95
 if not exists(MODEL_DIR): makedirs(MODEL_DIR)
 model = cvd_model.CVDModel(img_size=IMAGE_SIZE)
 
