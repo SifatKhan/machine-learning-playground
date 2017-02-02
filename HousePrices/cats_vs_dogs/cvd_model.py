@@ -70,8 +70,8 @@ class CVDModel:
 
         ## Second Conv Layer
         with tf.variable_scope('Conv2'):
-            W_conv2 = self._weight_variable([3, 3, 64, 128], "W_conv2")
-            b_conv2 = self._bias_variable([128], "b_conv2")
+            W_conv2 = self._weight_variable([3, 3, 64, 100], "W_conv2")
+            b_conv2 = self._bias_variable([100], "b_conv2")
             h_conv2 = tf.nn.relu(conv2d(norm1, W_conv2) + b_conv2, name="h_conv2")
 
         with tf.variable_scope('Norm2'):
@@ -84,9 +84,9 @@ class CVDModel:
         ## We have 2 max pooling layers, so the final Conv layer will be 1/4th the size.
         crop_pool_img_size = int(self._cropped_img_size / 4)
         with tf.variable_scope('FConn1'):
-            W_fc1 = self._weight_variable([crop_pool_img_size * crop_pool_img_size * 128, 128], name="W_fc1")
-            b_fc1 = self._bias_variable([128], name="b_fc1")
-            h2_pool_flat = tf.reshape(h2_pool, [-1, crop_pool_img_size * crop_pool_img_size * 128])
+            W_fc1 = self._weight_variable([crop_pool_img_size * crop_pool_img_size * 100, 100], name="W_fc1")
+            b_fc1 = self._bias_variable([100], name="b_fc1")
+            h2_pool_flat = tf.reshape(h2_pool, [-1, crop_pool_img_size * crop_pool_img_size * 100])
             h_fc1 = tf.nn.relu(tf.matmul(h2_pool_flat, W_fc1) + b_fc1)
 
         ## Dropout layer to reduce overfitting
@@ -104,7 +104,7 @@ class CVDModel:
         #     h_fc2_dropout = tf.nn.dropout(h_fc2, self._keep_prob)
 
         with tf.variable_scope('Output'):
-            W_output = self._weight_variable([128, 2], "W_output")
+            W_output = self._weight_variable([100, 2], "W_output")
             b_output = self._bias_variable([2], "b_output")
 
             self._result = tf.matmul(h_fc1_dropout, W_output) + b_output
