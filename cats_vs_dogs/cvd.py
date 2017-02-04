@@ -3,7 +3,7 @@ from os.path import exists
 
 import tensorflow as tf
 
-import HousePrices.cats_vs_dogs.cvd_model as cvd_model
+import cats_vs_dogs.cvd_model as cvd_model
 
 MODEL_DIR = 'model/'
 IMAGE_SIZE = 95

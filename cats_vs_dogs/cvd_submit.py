@@ -1,8 +1,8 @@
 import tensorflow as tf
 import numpy as np
 import pandas as pd
-import cvd_input
-import cvd_model
+import cats_vs_dogs.cvd_input as cvd_input
+import cats_vs_dogs.cvd_model as cvd_model
 from os.path import exists
 
 '''

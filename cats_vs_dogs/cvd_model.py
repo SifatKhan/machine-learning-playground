@@ -4,7 +4,7 @@ from PIL import Image
 import math
 import time
 
-import HousePrices.cats_vs_dogs.cvd_input as cvd_input
+import cats_vs_dogs.cvd_input as cvd_input
 
 
 class CVDModel:

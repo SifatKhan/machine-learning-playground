@@ -9,13 +9,13 @@ from tempfile import NamedTemporaryFile
 import sys
 import tarfile
 
-from six.moves import urllib
+import urllib
 
 import tensorflow as tf
 
-import HousePrices.cats_vs_dogs.cvd_model as cvd_model
+import cats_vs_dogs.cvd_model as cvd_model
 
-MODEL_DIR = 'HousePrices/cats_vs_dogs/model/'
+MODEL_DIR = 'cats_vs_dogs/model/'
 IMAGE_SIZE = 95
 if not exists(MODEL_DIR): makedirs(MODEL_DIR)
 model = cvd_model.CVDModel(img_size=IMAGE_SIZE)
@@ -43,7 +43,7 @@ def maybe_download_and_extract():
     tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
 
-maybe_download_and_extract()
+#maybe_download_and_extract()
 
 session = tf.Session()
 session.run(tf.global_variables_initializer())
@@ -61,14 +61,14 @@ def cat_or_dog(file):
         return "DOG!".format(file)
 
 
-app = Flask(__name__, static_folder='HousePrices/static/', static_url_path='')
+app = Flask(__name__, static_folder='static/', static_url_path='')
 
 dataframe = pd.read_csv('HousePrices/data/train.csv')
 
 
 @app.route("/")
 def hello():
-    return send_file("HousePrices/static/index.html")
+    return send_file("static/index.html")
 
 
 @app.route('/api/imageupload', methods=['POST'])
