@@ -4,22 +4,27 @@
             <legend>Is this a Cat or a Dog?</legend>
             <br>Photo:
             <input ng-show="myForm.file.$error.required" type="file" ngf-select ng-model="picFile" name="file"
-                   accept="image/*" ngf-max-size="2MB" required
-                   ngf-model-invalid="errorFile">
-            <i ng-show="myForm.file.$error.maxSize">File too large
-                {{errorFile.size / 1000000|number:1}}MB: max 2M</i>
+                   accept=".jpg" ngf-max-size="1MB" required ngf-model-invalid="errorFile">
+
+            <span class="text-danger" ng-show="myForm.file.$error.maxSize">File too large {{errorFile.size / 1000000|number:1}}MB: max 1M</span>
+
             <img ng-show="myForm.file.$valid" class="img-thumbnail" ngf-thumbnail="picFile" class="thumb">
-            <button ng-click="picFile = null" ng-show="picFile">Remove</button>
+            <button ng-click="clear()" ng-click="picFile = null" ng-show="picFile">Remove</button>
             <br>
+
             <button ng-show="!myForm.file.$error.required" ng-disabled="!myForm.$valid"
                     ng-click="uploadPic(picFile)">Submit
             </button>
             <span class="progress" ng-show="picFile.progress >= 0">
-        <div style="width:{{picFile.progress}}%"
-             ng-bind="picFile.progress + '%'"></div>
-      </span>
-            <span ng-show="picFile.result">Its a {{picFile.result}}</span>
-            <span class="err" ng-show="errorMsg">{{errorMsg}}</span>
+                <div style="width:{{picFile.progress}}%" ng-bind="picFile.progress + '%'"></div>
+            </span>
+
+            <div>
+                <span ng-show="picFile.result">Its a {{picFile.result}}</span>
+            </div>
+
+
+            <span class="text-danger" ng-show="errorMsg">{{errorMsg}}</span>
         </fieldset>
         <br>
     </form>

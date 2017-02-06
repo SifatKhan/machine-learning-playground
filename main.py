@@ -3,6 +3,7 @@ from scipy import stats
 import pandas as pd
 import numpy as np
 import flask
+from PIL import Image
 from os import makedirs, stat
 from os.path import exists, join
 import sys
@@ -73,6 +74,10 @@ def hello():
 @app.route('/api/imageupload', methods=['POST'])
 def upload():
     file = request.files['file']
+    img = Image.open(file)
+    if( img.format != 'JPEG' ):
+        return "Image must be in JPEG format.", 406
+
     results = cat_or_dog(file)
     return flask.jsonify(results=results)
 
