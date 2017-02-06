@@ -5,7 +5,6 @@ import numpy as np
 import flask
 from os import makedirs, stat
 from os.path import exists, join
-from tempfile import NamedTemporaryFile
 import sys
 import tarfile
 
@@ -74,10 +73,8 @@ def hello():
 @app.route('/api/imageupload', methods=['POST'])
 def upload():
     file = request.files['file']
-    temp = NamedTemporaryFile(mode='w+b', suffix='jpg')
-    file.save("uploadedimage")
-
-    return flask.jsonify(results=cat_or_dog(file))
+    results = cat_or_dog(file)
+    return flask.jsonify(results=results)
 
 
 @app.route("/api/neighborhood/counts")

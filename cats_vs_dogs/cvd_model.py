@@ -156,6 +156,7 @@ class CVDModel:
         image = session.run(resized_img, feed_dict={x: data})
         return self.predict([image], session)
 
+
     def predict(self, images, session):
         return session.run(self.prediction, feed_dict={self._x: images, self._keep_prob: 1.0})
 
