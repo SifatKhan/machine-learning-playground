@@ -1,6 +1,6 @@
 import tensorflow as tf
-from os import listdir, makedirs
-from os.path import isfile, join, isdir, exists
+from os import listdir
+from os.path import isfile, join, isdir
 import re
 
 TRAIN_DIR = 'train/'
@@ -9,18 +9,18 @@ TEST_DIR = 'test/'
 
 
 def training_images(image_size):
-    return _read_images([TRAIN_DIR], 128, image_size, augment_data=True, submission_set=False)
+    return _read_images([TRAIN_DIR], 128, image_size, augment_data=True)
 
 
 def validation_images(image_size):
-    return _read_images([VALIDATION_DIR], 128, image_size, augment_data=False, submission_set=False)
+    return _read_images([VALIDATION_DIR], 128, image_size, augment_data=False)
 
 
 def test_images(image_size):
-    return _read_images([TEST_DIR], 100, image_size, augment_data=False, submission_set=True)
+    return _read_images([TEST_DIR], 100, image_size, augment_data=False)
 
 
-def _read_images(paths, batch_size, image_size, augment_data=True, submission_set=False):
+def _read_images(paths, batch_size, image_size, augment_data=True):
     label_list = []
     id_list = []
     file_list = []
@@ -53,7 +53,7 @@ def _read_images(paths, batch_size, image_size, augment_data=True, submission_se
     if (augment_data is True):
         resized_img = tf.image.resize_images(decoded_img, [image_size, image_size])
 
-        ## Randomly alter the images to enlarge the training set.
+        ## Randomly alter the images to enlarge the training set. ##
         resized_img = tf.random_crop(resized_img, [image_size - 15, image_size - 15, 3])
         resized_img = tf.image.random_brightness(resized_img, max_delta=63)
         resized_img = tf.image.random_contrast(resized_img, lower=0.2, upper=1.8)
@@ -64,16 +64,9 @@ def _read_images(paths, batch_size, image_size, augment_data=True, submission_se
     resized_img = tf.image.per_image_standardization(resized_img)
 
     min_queue_examples = batch_size * 100
-    if (submission_set is False):
-
-        images_batch, labels_batch, id_batch = tf.train.shuffle_batch([resized_img, label, id],
-                                                                      batch_size=batch_size,
-                                                                      capacity=min_queue_examples + 3 * batch_size,
-                                                                      min_after_dequeue=min_queue_examples)
-
-    else:
-        images_batch, labels_batch, id_batch = tf.train.batch([resized_img, label, id],
-                                                              batch_size=batch_size,
-                                                              capacity=min_queue_examples + 3 * batch_size)
+    images_batch, labels_batch, id_batch = tf.train.shuffle_batch([resized_img, label, id],
+                                                                  batch_size=batch_size,
+                                                                  capacity=min_queue_examples + 3 * batch_size,
+                                                                  min_after_dequeue=min_queue_examples)
 
     return images_batch, labels_batch, id_batch
