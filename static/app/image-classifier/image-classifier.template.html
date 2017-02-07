@@ -10,7 +10,7 @@
             <div class="col-sm-4">
                 <label class="btn btn-primary" ng-show="!picFile"> Choose an image
                     <input style="display: none;" type="file"
-                           ngf-select ng-model="picFile" name="file" accept=".jpg" ngf-max-size="1MB"
+                           ngf-select ng-model="picFile" name="file" accept=".jpg" ngf-max-size="512KB"
                            ngf-model-invalid="errorFile">
                 </label>
                 <img ng-show="!myForm.file.$error" class="img-thumbnail" ngf-thumbnail="picFile" class="thumb">
@@ -21,7 +21,7 @@
         </div>
 
 
-        <span class="text-danger" ng-show="myForm.file.$error.maxSize">File too large {{errorFile.size / 1000000|number:1}}MB: max 1M</span>
+        <span class="text-danger" ng-show="myForm.file.$error.maxSize">File too large {{errorFile.size / 1000|number:1}}KB: max 512KB</span>
 
         <button class="btn btn-primary" ng-show="picFile" ng-disabled="!myForm.$valid"
                 ng-click="uploadPic(picFile)">Tell me!
