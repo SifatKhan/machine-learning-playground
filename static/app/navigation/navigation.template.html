@@ -22,7 +22,7 @@
         <div class="row">
             <nav id="sidebar" class="col-lg-1 col-sm-2 container-fluid">
 
-                <ul ng-show="currentPath != '/classifier'" class="nav nav-pills nav-stacked affix">
+                <ul ng-show="currentPath.indexOf('classifier') === -1" class="nav nav-pills nav-stacked affix">
                     <li><a href="#">Neighborhoods</a></li>
                     <li><a href="#!/pricingData">Pricing</a></li>
                     <li><a href="#!/trends">Trends</a></li>
@@ -30,10 +30,10 @@
                     <li><a href="#">About</a></li>
                 </ul>
 
-                <ul ng-show="currentPath == '/classifier'" class="nav nav-pills nav-stacked affix">
+                <ul ng-show="currentPath.indexOf('classifier') !== -1" class="nav nav-pills nav-stacked affix">
 
                     <li><a href="#!/classifier">Cat or Dog?</a></li>
-                    <li><a href="#!/classifier">About</a></li>
+                    <li><a href="#!/aboutclassifier">About</a></li>
                 </ul>
             </nav>
             <div class="col-lg-11 col-sm-10">
