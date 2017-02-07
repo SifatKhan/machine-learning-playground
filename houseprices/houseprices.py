@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import pandas as pd
-import houselist as hl
+import houseprices.houselist as hl
 import time
 
 pd.read_csv('data/train.csv').sample(frac=1).to_csv('data/train.csv',index=False)

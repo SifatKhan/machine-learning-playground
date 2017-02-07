@@ -63,7 +63,7 @@ def cat_or_dog(file):
 
 app = Flask(__name__, static_folder='static/', static_url_path='')
 
-dataframe = pd.read_csv('HousePrices/data/train.csv')
+dataframe = pd.read_csv('houseprices/data/train.csv')
 
 
 @app.route("/")
