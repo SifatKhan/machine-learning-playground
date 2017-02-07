@@ -26,8 +26,8 @@ with tf.Session() as session:
     ckpt = tf.train.get_checkpoint_state(MODEL_DIR)
     if ckpt and ckpt.model_checkpoint_path:
         saver.restore(session, ckpt.model_checkpoint_path)
-    else:
-        model.train(num_iterations=20000, session=session)
 
-    cat_or_dog("picture.jpg")
-    cat_or_dog("dog.jpg")
+    model.train(num_iterations=20000, session=session)
+
+    cat_or_dog("image1.jpg")
+    cat_or_dog("image2.jpg")

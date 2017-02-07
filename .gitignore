@@ -1,11 +1,5 @@
 houseprices/output.csv
 
-
-titanic/myValidate.csv
-titanic/mytest.csv
-titanic/mytrain.csv
-titanic/output.csv
-
 *__pycache__
 
 *~lock.*
@@ -16,3 +10,4 @@ cats_vs_dogs/validate/
 cats_vs_dogs/model/
 cats_vs_dogs/output*
 cats_vs_dogs/test-mini
+cats_vs_dogs/*png
