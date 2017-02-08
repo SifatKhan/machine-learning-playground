@@ -56,9 +56,9 @@ saver.restore(session, ckpt.model_checkpoint_path)
 def cat_or_dog(file):
     prediction = model.predict_from_file(file, session)
     if (prediction == 0):
-        return "CAT!".format(file)
+        return "CAT!"
     else:
-        return "DOG!".format(file)
+        return "DOG!"
 
 
 app = Flask(__name__, static_folder='static/', static_url_path='')
