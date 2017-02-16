@@ -14,7 +14,7 @@ class CVDModel:
         self._batch_size = 128
         self._iterations_per_epoch = int(math.ceil(self._trainingset_size / self._batch_size))
 
-        ## We are going to resize the images to 90x90 pixels, and then randomly crop out 10 pixels.
+        ## We are going to resize the image, and then randomly crop out 15 pixels.
         self._img_size = img_size
         self._cropped_img_size = self._img_size - 15
 
@@ -93,15 +93,8 @@ class CVDModel:
         with tf.variable_scope('Dropout1'):
             h_fc1_dropout = tf.nn.dropout(h_fc1, self._keep_prob)
 
-        ## Second Fully-connected layer
-        # with tf.variable_scope('FConn2'):
-        #     W_fc2 = self._weight_variable([256, 256], name="W_fc2")
-        #     b_fc2 = self._bias_variable([256], name="b_fc2")
-        #     h_fc2 = tf.nn.relu(tf.matmul(h_fc1_dropout, W_fc2) + b_fc2)
-        #
-        # ## Second dropout layer
-        # with tf.variable_scope('Dropout2'):
-        #     h_fc2_dropout = tf.nn.dropout(h_fc2, self._keep_prob)
+        ## Eliminated the second Fully-connected layer, otherwise the model will be too large
+        ## and will exceed the Heroku app's RAM limit.
 
         with tf.variable_scope('Output'):
             W_output = self._weight_variable([100, 2], "W_output")
