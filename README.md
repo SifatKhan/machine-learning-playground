@@ -1,8 +1,8 @@
-#Machine Learning Playground
+# Machine Learning Playground
 
-###[Heroku Deployment] (http://jmatias-data.herokuapp.com/)
+### [Heroku Deployment](http://jmatias-data.herokuapp.com/)
 
-I built this Python app to experiment with [Tensorflow] (http://www.tensorflow.org) and data visualization using [Plotly] (https://plot.ly/javascript/).
+I built this Python app to experiment with [Tensorflow](http://www.tensorflow.org) and data visualization using [Plotly](https://plot.ly/javascript/).
 
 The image classifier uses a Convolutional Neural Network trained over [25,000 images of cats and dogs](https://www.kaggle.com/c/dogs-vs-cats-redux-kernels-edition/data) obtained from the "Dogs vs. Cats" Kaggle competition.
 
