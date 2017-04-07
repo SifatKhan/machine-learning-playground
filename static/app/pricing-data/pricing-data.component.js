@@ -63,21 +63,14 @@ angular.module('myApp').component('pricingData', {
                 };
                 Plotly.plot('lotArea', response.data, layout, {displayModeBar: false});
 
-                angular.element($window).unbind('resize');
-                angular.element($window).bind('resize', function () {
-                    var div = Plotly.d3.select("div[id='lotArea']").node();
-                    Plotly.Plots.resize(div);
-
-                    div = Plotly.d3.select("div[id='lotFrontage']").node();
-                    if (div != null) Plotly.Plots.resize(div);
-
-                    div = Plotly.d3.select("div[id='grlivArea']").node();
-                    if (div != null) Plotly.Plots.resize(div);
-
-                    div = Plotly.d3.select("div[id='histogram']").node();
-                    if (div != null) Plotly.Plots.resize(div);
-                });
             });
+
+            window.onresize = function () {
+              Plotly.Plots.resize(document.getElementById("lotArea"));
+              Plotly.Plots.resize(document.getElementById("lotFrontage"));
+              Plotly.Plots.resize(document.getElementById("grlivArea"));
+              Plotly.Plots.resize(document.getElementById("histogram"));
+          };
 
         }]
 });

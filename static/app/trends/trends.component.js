@@ -33,19 +33,14 @@ angular.module('myApp').component('trends', {
                 };
                 Plotly.plot('yearlyMean', [response.data], layout, {displayModeBar: false})
 
-                angular.element($window).unbind('resize');
-                angular.element($window).bind('resize', function () {
-                    var div = Plotly.d3.select("div[id='yearlyMean']").node();
-                    if (div != null) Plotly.Plots.resize(div);
-
-                    div = Plotly.d3.select("div[id='yearlyCount']").node();
-                    if (div != null) Plotly.Plots.resize(div);
-
-                    div = Plotly.d3.select("div[id='monthlyCount']").node();
-                    if (div != null) Plotly.Plots.resize(div);
-
-                });
-
             });
+
+            window.onresize = function () {
+              Plotly.Plots.resize(document.getElementById("monthlyCount"));
+              Plotly.Plots.resize(document.getElementById("yearlyMean"));
+              Plotly.Plots.resize(document.getElementById("yearlyCount"));
+          };
+
+
         }]
 });

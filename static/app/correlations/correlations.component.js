@@ -15,13 +15,11 @@ angular.module('myApp').component('correlations', {
                 };
                 Plotly.plot('heatmap', response.data, layout, {displayModeBar: false});
 
-                angular.element($window).unbind('resize');
-                angular.element($window).bind('resize', function () {
-                    var div = Plotly.d3.select("div[id='heatmap']").node();
-                    if (div != null)  Plotly.Plots.resize(div);
-                });
-
             });
+
+            window.onresize = function () {
+              Plotly.Plots.resize(document.getElementById("heatmap"));
+          };
 
         }]
 });

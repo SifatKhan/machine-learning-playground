@@ -18,16 +18,12 @@ angular.module('myApp').component('neighborhoodList', {
                     height: 800
                 };
                 Plotly.plot('boxplot', response.data, layout, {displayModeBar: false})
-
-                angular.element($window).unbind('resize');
-                angular.element($window).bind('resize', function () {
-                    var div = Plotly.d3.select("div[id='graph']").node();
-                    if (div != null) Plotly.Plots.resize(div);
-
-                    div = Plotly.d3.select("div[id='boxplot']").node();
-                    if (div != null) Plotly.Plots.resize(div);
-
-                });
             });
+
+            window.onresize = function () {
+              Plotly.Plots.resize(document.getElementById("graph"));
+              Plotly.Plots.resize(document.getElementById("boxplot"));
+          };
+
         }]
 });
