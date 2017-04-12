@@ -57,8 +57,8 @@ class CVDModel:
 
         ## First Convolutional Layer
         with tf.variable_scope('Conv1'):
-            W_conv1 = self._weight_variable([4, 4, 3, 64], "W_conv1")
-            b_conv1 = self._bias_variable([64], "b_conv1")
+            W_conv1 = self._weight_variable([4, 4, 3, 96], "W_conv1")
+            b_conv1 = self._bias_variable([96], "b_conv1")
             h_conv1 = tf.nn.relu(conv2d(self._x, W_conv1) + b_conv1)
 
         with tf.variable_scope('Pool1'):
@@ -70,8 +70,8 @@ class CVDModel:
 
         ## Second Conv Layer
         with tf.variable_scope('Conv2'):
-            W_conv2 = self._weight_variable([3, 3, 64, 100], "W_conv2")
-            b_conv2 = self._bias_variable([100], "b_conv2")
+            W_conv2 = self._weight_variable([3, 3, 96, 192], "W_conv2")
+            b_conv2 = self._bias_variable([192], "b_conv2")
             h_conv2 = tf.nn.relu(conv2d(norm1, W_conv2) + b_conv2, name="h_conv2")
 
         with tf.variable_scope('Norm2'):
@@ -84,20 +84,27 @@ class CVDModel:
         ## We have 2 max pooling layers, so the final Conv layer will be 1/4th the size.
         crop_pool_img_size = int(self._cropped_img_size / 4)
         with tf.variable_scope('FConn1'):
-            W_fc1 = self._weight_variable([crop_pool_img_size * crop_pool_img_size * 100, 100], name="W_fc1")
-            b_fc1 = self._bias_variable([100], name="b_fc1")
-            h2_pool_flat = tf.reshape(h2_pool, [-1, crop_pool_img_size * crop_pool_img_size * 100])
+            W_fc1 = self._weight_variable([crop_pool_img_size * crop_pool_img_size * 192, 1024], name="W_fc1")
+            b_fc1 = self._bias_variable([1024], name="b_fc1")
+            h2_pool_flat = tf.reshape(h2_pool, [-1, crop_pool_img_size * crop_pool_img_size * 192])
             h_fc1 = tf.nn.relu(tf.matmul(h2_pool_flat, W_fc1) + b_fc1)
 
         ## Dropout layer to reduce overfitting
         with tf.variable_scope('Dropout1'):
             h_fc1_dropout = tf.nn.dropout(h_fc1, self._keep_prob)
 
-        ## Eliminated the second Fully-connected layer, otherwise the model will be too large
-        ## and will exceed the Heroku app's RAM limit.
+        ## Second Fully-connected layer
+        with tf.variable_scope('FConn2'):
+            W_fc2 = self._weight_variable([1024, 1024], name="W_fc2")
+            b_fc2 = self._bias_variable([1024], name="b_fc2")
+            h_fc2 = tf.nn.relu(tf.matmul(h_fc1_dropout, W_fc2) + b_fc2)
+
+        ## Second dropout layer
+        with tf.variable_scope('Dropout2'):
+            h_fc2_dropout = tf.nn.dropout(h_fc2, self._keep_prob)
 
         with tf.variable_scope('Output'):
-            W_output = self._weight_variable([100, 2], "W_output")
+            W_output = self._weight_variable([1024, 2], "W_output")
             b_output = self._bias_variable([2], "b_output")
 
             self._result = tf.matmul(h_fc1_dropout, W_output) + b_output
