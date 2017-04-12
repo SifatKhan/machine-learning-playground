@@ -11,22 +11,23 @@
 
     <title>Machine Learning Playground</title>
 
-    <link href="css/bootstrap.css" rel="stylesheet">
-    <link href="css/app.css" rel="stylesheet">
+    <link href="bower_components/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
 
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.1/angular.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.1/angular-route.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.1/angular-resource.js"></script>
+
+    <script src="bower_components/jquery/dist/jquery.js"></script>
+    <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="bower_components/angular-route/angular-route.js"></script>
+    <script src="bower_components/angular-resource/angular-resource.js"></script>
+    <script src="bower_components/angular-ui-router/release/angular-ui-router.js"></script>
+    <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
     <script src="js/ng-file-upload-shim.min.js"></script>
     <script src="js/ng-file-upload-all.min.js"></script>
 
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="https://code.jquery.com/jquery-2.2.4.min.js"
-            integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
-            crossorigin="anonymous"></script>
+
     <script src="app/app.js"></script>
-    <script src="js/bootstrap.min.js"></script>
 
     <script src="app/navigation/navigation.component.js"></script>
     <script src="app/neighborhood-list/neighborhood-list.component.js"></script>
@@ -35,14 +36,17 @@
     <script src="app/correlations/correlations.component.js"></script>
     <script src="app/image-classifier/image-classifier.component.js"></script>
 
+    <link href="css/app.css" rel="stylesheet">
+
 </head>
 
 <body>
 
 <div class="container-fluid">
+
     <navigation></navigation>
 </div>
-
+<ui-view ></ui-view>
 
 </body>
 

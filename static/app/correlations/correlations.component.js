@@ -1,5 +1,5 @@
 angular.module('myApp').component('correlations', {
-    template: '<div class="row"> <div id="heatmap"></div> </div>',
+    template: '<div> <div id="heatmap"></div> </div>',
     controller: ['$scope', '$http', '$window',
         function CorrelationsController($scope, $http, $window) {
 
