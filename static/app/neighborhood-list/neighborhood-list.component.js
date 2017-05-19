@@ -1,8 +1,9 @@
 angular.module('myApp').component('neighborhoodList', {
     templateUrl: 'app/neighborhood-list/neighborhood-list.template.html',
-    controller: ['$scope', '$http', '$window',
-        function NeighborhoodListController($scope, $http, $window) {
+    controller: ['$scope', '$http', '$window', '$location',
+        function NeighborhoodListController($scope, $http, $window, $location) {
 
+            $window.ga('send', 'pageview', {page: $location.url()});
             $http.get('/api/neighborhood/counts').then(function (response) {
                 layout = {
                     yaxis: {title: 'Count'},
@@ -21,9 +22,9 @@ angular.module('myApp').component('neighborhoodList', {
             });
 
             window.onresize = function () {
-              Plotly.Plots.resize(document.getElementById("graph"));
-              Plotly.Plots.resize(document.getElementById("boxplot"));
-          };
+                Plotly.Plots.resize(document.getElementById("graph"));
+                Plotly.Plots.resize(document.getElementById("boxplot"));
+            };
 
         }]
 });

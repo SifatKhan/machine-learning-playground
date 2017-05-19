@@ -1,8 +1,9 @@
 angular.module('myApp').component('pricingData', {
     templateUrl: 'app/pricing-data/pricing-data.template.html',
-    controller: ['$scope', '$http', '$window',
-        function PricingDataController($scope, $http, $window) {
+    controller: ['$scope', '$http', '$window','$location',
+        function PricingDataController($scope, $http, $window,$location) {
 
+            $window.ga('send', 'pageview', {page: $location.url()});
 
             $http.get('/api/pricing/lotfrontage').then(function (response) {
                 layout = {
