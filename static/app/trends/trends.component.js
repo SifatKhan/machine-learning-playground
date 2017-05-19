@@ -1,7 +1,9 @@
 angular.module('myApp').component('trends', {
     templateUrl: 'app/trends/trends.template.html',
-    controller: ['$scope', '$http', '$window',
-        function TrendsController($scope, $http, $window) {
+    controller: ['$scope', '$http', '$window','$location',
+        function TrendsController($scope, $http, $window,$location) {
+
+            $window.ga('send', 'pageview', {page: $location.url()});
 
             $http.get('/api/yearly/count').then(function (response) {
 

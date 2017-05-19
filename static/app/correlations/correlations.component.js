@@ -1,8 +1,9 @@
 angular.module('myApp').component('correlations', {
     template: '<div> <div id="heatmap"></div> </div>',
-    controller: ['$scope', '$http', '$window',
-        function CorrelationsController($scope, $http, $window) {
+    controller: ['$scope', '$http', '$window','$location',
+        function CorrelationsController($scope, $http, $window,$location) {
 
+            $window.ga('send', 'pageview', {page: $location.url()});
 
             $http.get('/api/correlation').then(function (response) {
                 layout = {
