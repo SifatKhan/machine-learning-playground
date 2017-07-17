@@ -37,7 +37,7 @@ class CVDModel:
     def _weight_variable(self, shape, name):
         var = tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
         ## Regularize the weigths to reduce overfitting.
-        weight_loss = tf.mul(tf.nn.l2_loss(var), self._weight_decay, name='weight_loss')
+        weight_loss = tf.multiply(tf.nn.l2_loss(var), self._weight_decay, name='weight_loss')
         tf.add_to_collection('losses', weight_loss)
         self.variables.append(var)
         return var
@@ -115,7 +115,7 @@ class CVDModel:
 
     def _build_trainer(self):
         with tf.variable_scope('Train'):
-            cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(self._result, self._y))
+            cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(None,self._y, self._result))
             tf.add_to_collection('losses', cross_entropy)
 
             ## Add sum the cross entroy loss plus all the weight l2 losses.
@@ -174,7 +174,7 @@ class CVDModel:
         training_summary = tf.summary.merge(self._training_summaries)
         validation_summary = tf.summary.merge(self._validation_summaries)
         now = time.time()
-        log_dir = '/tmp/cvd_logs/{}'.format(str(int(now)))
+        log_dir = './cvd_logs/{}'.format(str(int(now)))
         train_writer = tf.summary.FileWriter(log_dir, session.graph)
 
         coord = tf.train.Coordinator()
