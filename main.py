@@ -16,7 +16,9 @@ import tensorflow as tf
 import cats_vs_dogs.cvd_model as cvd_model
 
 
-
+MODEL_DIR = 'cats_vs_dogs/model/'
+IMAGE_SIZE = 95
+if not exists(MODEL_DIR): makedirs(MODEL_DIR)
 
 def maybe_download_and_extract():
     """Download and extract the tarball from Alex's website."""
@@ -43,9 +45,6 @@ def maybe_download_and_extract():
 maybe_download_and_extract()
 
 
-MODEL_DIR = 'cats_vs_dogs/model/'
-IMAGE_SIZE = 95
-if not exists(MODEL_DIR): makedirs(MODEL_DIR)
 model = cvd_model.CVDModel(img_size=IMAGE_SIZE)
 
 session = tf.Session()
