@@ -1,4 +1,5 @@
 from flask import Flask, send_file, request
+from flask_cors import CORS
 from scipy import stats
 import pandas as pd
 import numpy as np
@@ -64,6 +65,7 @@ def cat_or_dog(file):
 
 
 app = Flask(__name__, static_folder='static/', static_url_path='')
+CORS(app)
 
 dataframe = pd.read_csv('houseprices/data/train.csv')
 
