@@ -11,3 +11,7 @@ body {
     height: 1000px;
     width: auto;
 }
+
+a {
+    cursor: pointer;
+}
