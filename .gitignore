@@ -33,8 +33,7 @@ static/bower_components/jquery/external
 LICENSE
 LICENSE.*
 AUTHORS.*
-.idea/workspace.xml
-.idea/misc.xml
 static/bower_components/
 cats_vs_dogs/cvd_logs/
-.idea/
+.idea
+
