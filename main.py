@@ -5,16 +5,47 @@ import pandas as pd
 import numpy as np
 import flask
 from PIL import Image
-from os import makedirs
-from os.path import exists
+from os import makedirs, stat
+from os.path import exists, join
+import sys
+import tarfile
+
+import urllib
 
 import tensorflow as tf
 
 import cats_vs_dogs.cvd_model as cvd_model
 
+
 MODEL_DIR = 'cats_vs_dogs/model/'
-IMAGE_SIZE = 115
+IMAGE_SIZE = 95
 if not exists(MODEL_DIR): makedirs(MODEL_DIR)
+
+def maybe_download_and_extract():
+    """Download and extract the tarball from Alex's website."""
+    dest_directory = MODEL_DIR
+    DATA_URL = 'https://dl.dropbox.com/s/40lxdtiqwfpzymb/model.tar.gz'
+    if not exists(dest_directory):
+        makedirs(dest_directory)
+    filename = DATA_URL.split('/')[-1]
+    filepath = join(dest_directory, filename)
+    if not exists(filepath):
+        def _progress(count, block_size, total_size):
+            sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename,
+                                                             float(count * block_size) / float(total_size) * 100.0))
+            sys.stdout.flush()
+
+        filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
+        print()
+        statinfo = stat(filepath)
+        print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
+
+    tarfile.open(filepath, 'r:gz').extractall(dest_directory)
+
+
+maybe_download_and_extract()
+
+
 model = cvd_model.CVDModel(img_size=IMAGE_SIZE)
 
 session = tf.Session()
@@ -60,7 +91,7 @@ def neighborhood_counts():
     data = {}
     data['type'] = "bar"
     data['x'] = dataframe.Neighborhood.value_counts().index.tolist()
-    data['y'] = dataframe.Neighborhood.value_counts().astype(int).tolist()
+    data['y'] = dataframe.Neighborhood.value_counts().tolist()
 
     return flask.jsonify(data)
 
