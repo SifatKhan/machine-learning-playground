@@ -1,4 +1,5 @@
 from flask import Flask, send_file, request
+from flask_cors import CORS
 from scipy import stats
 import pandas as pd
 import numpy as np
@@ -6,7 +7,6 @@ import flask
 from PIL import Image
 from os import makedirs
 from os.path import exists
-
 
 import tensorflow as tf
 
@@ -16,7 +16,6 @@ MODEL_DIR = 'cats_vs_dogs/model/'
 IMAGE_SIZE = 115
 if not exists(MODEL_DIR): makedirs(MODEL_DIR)
 model = cvd_model.CVDModel(img_size=IMAGE_SIZE)
-
 
 session = tf.Session()
 session.run(tf.global_variables_initializer())
@@ -35,6 +34,7 @@ def cat_or_dog(file):
 
 
 app = Flask(__name__, static_folder='static/', static_url_path='')
+CORS(app)
 
 dataframe = pd.read_csv('houseprices/data/train.csv')
 
@@ -48,7 +48,7 @@ def hello():
 def upload():
     file = request.files['file']
     img = Image.open(file)
-    if( img.format != 'JPEG' ):
+    if (img.format != 'JPEG'):
         return "Image must be in JPEG format.", 406
 
     results = cat_or_dog(file)
@@ -60,7 +60,7 @@ def neighborhood_counts():
     data = {}
     data['type'] = "bar"
     data['x'] = dataframe.Neighborhood.value_counts().index.tolist()
-    data['y'] = dataframe.Neighborhood.value_counts().tolist()
+    data['y'] = dataframe.Neighborhood.value_counts().astype(int).tolist()
 
     return flask.jsonify(data)
 
