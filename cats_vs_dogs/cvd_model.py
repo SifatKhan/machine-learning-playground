@@ -174,7 +174,7 @@ class CVDModel:
         training_summary = tf.summary.merge(self._training_summaries)
         validation_summary = tf.summary.merge(self._validation_summaries)
         now = time.time()
-        log_dir = '/tmp/cvd_logs/{}'.format(str(int(now)))
+        log_dir = './cvd_logs/{}'.format(str(int(now)))
         train_writer = tf.summary.FileWriter(log_dir, session.graph)
 
         coord = tf.train.Coordinator()
