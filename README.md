@@ -1,6 +1,6 @@
 # Machine Learning Playground
 
-### [Heroku Deployment](https://jmatias-data.herokuapp.com/)
+### [Heroku Deployment](https://jmatias-dataviz.herokuapp.com/)
 
 I built this Python app to experiment with [Tensorflow](http://www.tensorflow.org) and data visualization using [Plotly](https://plot.ly/javascript/).
 
