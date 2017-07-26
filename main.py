@@ -39,10 +39,6 @@ CORS(app)
 dataframe = pd.read_csv('houseprices/data/train.csv')
 
 
-@app.route("/")
-def hello():
-    return send_file("static/index.html")
-
 
 @app.route('/api/imageupload', methods=['POST'])
 def upload():
