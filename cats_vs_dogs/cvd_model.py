@@ -33,7 +33,6 @@ class CVDModel:
         self._build_model()
         self._build_trainer()
 
-
     def _weight_variable(self, shape, name):
         var = tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
         ## Regularize the weigths to reduce overfitting.
@@ -58,6 +57,7 @@ class CVDModel:
         ## First Convolutional Layer
         with tf.variable_scope('Conv1'):
             W_conv1 = self._weight_variable([4, 4, 3, 96], "W_conv1")
+            self._training_summaries.append(tf.summary.histogram('Weights1', W_conv1))
             b_conv1 = self._bias_variable([96], "b_conv1")
             h_conv1 = tf.nn.relu(conv2d(self._x, W_conv1) + b_conv1)
 
@@ -71,6 +71,7 @@ class CVDModel:
         ## Second Conv Layer
         with tf.variable_scope('Conv2'):
             W_conv2 = self._weight_variable([3, 3, 96, 192], "W_conv2")
+            self._training_summaries.append(tf.summary.histogram('Weights2', W_conv2))
             b_conv2 = self._bias_variable([192], "b_conv2")
             h_conv2 = tf.nn.relu(conv2d(norm1, W_conv2) + b_conv2, name="h_conv2")
 
@@ -84,10 +85,11 @@ class CVDModel:
         ## We have 2 max pooling layers, so the final Conv layer will be 1/4th the size.
         crop_pool_img_size = int(self._cropped_img_size / 4)
         with tf.variable_scope('FConn1'):
-            W_fc1 = self._weight_variable([crop_pool_img_size * crop_pool_img_size * 192, 1024], name="W_fc1")
-            b_fc1 = self._bias_variable([1024], name="b_fc1")
+            W_fc1 = self._weight_variable([crop_pool_img_size * crop_pool_img_size * 192, 32], name="W_fc1")
+            b_fc1 = self._bias_variable([32], name="b_fc1")
             h2_pool_flat = tf.reshape(h2_pool, [-1, crop_pool_img_size * crop_pool_img_size * 192])
             h_fc1 = tf.nn.relu(tf.matmul(h2_pool_flat, W_fc1) + b_fc1)
+            self._training_summaries.append(tf.summary.histogram('FullyConn1', W_fc1))
 
         ## Dropout layer to reduce overfitting
         with tf.variable_scope('Dropout1'):
@@ -95,19 +97,21 @@ class CVDModel:
 
         ## Second Fully-connected layer
         with tf.variable_scope('FConn2'):
-            W_fc2 = self._weight_variable([1024, 1024], name="W_fc2")
-            b_fc2 = self._bias_variable([1024], name="b_fc2")
+            W_fc2 = self._weight_variable([32, 32], name="W_fc2")
+            b_fc2 = self._bias_variable([32], name="b_fc2")
             h_fc2 = tf.nn.relu(tf.matmul(h_fc1_dropout, W_fc2) + b_fc2)
+            self._training_summaries.append(tf.summary.histogram('FullyConn2', W_fc2))
 
         ## Second dropout layer
         with tf.variable_scope('Dropout2'):
             h_fc2_dropout = tf.nn.dropout(h_fc2, self._keep_prob)
 
         with tf.variable_scope('Output'):
-            W_output = self._weight_variable([1024, 2], "W_output")
+            W_output = self._weight_variable([32, 2], "W_output")
             b_output = self._bias_variable([2], "b_output")
+            self._training_summaries.append(tf.summary.histogram('W_output', W_output))
 
-            self._result = tf.matmul(h_fc1_dropout, W_output) + b_output
+            self._result = tf.matmul(h_fc2_dropout, W_output) + b_output
             self.prediction = tf.cast(tf.argmax(self._result, 1), tf.int32)
             self.softmax = tf.nn.softmax(self._result)
 
@@ -115,19 +119,18 @@ class CVDModel:
 
     def _build_trainer(self):
         with tf.variable_scope('Train'):
-            cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(None,self._y, self._result))
+            cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(None, self._y, self._result))
             tf.add_to_collection('losses', cross_entropy)
 
             ## Add sum the cross entroy loss plus all the weight l2 losses.
             self._cost = tf.add_n(tf.get_collection('losses'), name='total_loss')
-            self._training_summaries.append(tf.summary.scalar('Training Cost', self._cost))
-            self._validation_summaries.append(tf.summary.scalar('Validation Cost', self._cost))
+            self._training_summaries.append(tf.summary.scalar('Cost', self._cost))
 
             self.train_step = tf.train.AdamOptimizer(1e-4).minimize(self._cost)
 
             correct_prediction = tf.equal(self.prediction, self._y)
             self._accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-            self._validation_summaries.append(tf.summary.scalar('accuracy', self._accuracy))
+            self._training_summaries.append(tf.summary.scalar('accuracy', self._accuracy))
 
             ## Measure the F1-Score
             true_positives = tf.reduce_sum(
@@ -140,9 +143,9 @@ class CVDModel:
             recall = true_positives / (true_positives + false_negatives)
             self._f1_score = 2 * ((precision * recall) / (precision + recall))
 
-            self._validation_summaries.append(tf.summary.scalar('F1-Score', self._f1_score))
-            self._validation_summaries.append(tf.summary.scalar('Precision', precision))
-            self._validation_summaries.append(tf.summary.scalar('Recall', recall))
+            self._training_summaries.append(tf.summary.scalar('F1-Score', self._f1_score))
+            self._training_summaries.append(tf.summary.scalar('Precision', precision))
+            self._training_summaries.append(tf.summary.scalar('Recall', recall))
 
         return
 
@@ -155,7 +158,6 @@ class CVDModel:
         resized_img = tf.image.per_image_standardization(resized_img)
         image = session.run(resized_img, feed_dict={x: data})
         return self.predict([image], session)
-
 
     def predict(self, images, session):
         return session.run(self.prediction, feed_dict={self._x: images, self._keep_prob: 1.0})
@@ -172,36 +174,43 @@ class CVDModel:
             self._val_images, self._val_labels, _ = cvd_input.validation_images(self._img_size)
 
         training_summary = tf.summary.merge(self._training_summaries)
-        validation_summary = tf.summary.merge(self._validation_summaries)
+        # validation_summary = tf.summary.merge(self._validation_summaries)
         now = time.time()
-        log_dir = './cvd_logs/{}'.format(str(int(now)))
-        train_writer = tf.summary.FileWriter(log_dir, session.graph)
+        log_dir_val = './cvd_logs/{}-val'.format(str(int(now)))
+        log_dir_train = './cvd_logs/{}-train'.format(str(int(now)))
+        train_writer_train = tf.summary.FileWriter(log_dir_train, session.graph)
+        train_writer_val = tf.summary.FileWriter(log_dir_val, session.graph)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(session, coord=coord)
 
         iter = 0
         while (iter < num_iterations):
+            start_time = time.time()
             iter += 1
             img_batch, label_batch = session.run([self._images, self._labels])
             _, train_cost, training_summ = session.run([self.train_step, self._cost, training_summary],
                                                        feed_dict={self._x: img_batch, self._y: label_batch,
                                                                   self._keep_prob: 0.5, self._weight_decay: 1e-3})
 
-            if (iter % 10 == 0):
+            current_time = time.time()
+            duration = current_time - start_time
+            start_time = current_time
+
+            if (iter % 1 == 0):
                 ## Every 10 iterations, run the model over the validation set to see how we are doing...
                 val_img_batch, val_label_batch = session.run([self._val_images, self._val_labels])
-                val_accuracy, f1, val_cost, summ = session.run(
-                    [self._accuracy, self._f1_score, self._cost, validation_summary],
+                val_accuracy, f1, val_cost, val_summ = session.run(
+                    [self._accuracy, self._f1_score, self._cost, training_summary],
                     feed_dict={self._x: val_img_batch,
                                self._y: val_label_batch,
                                self._weight_decay: 0.0,
                                self._keep_prob: 1.0})
 
-                train_writer.add_summary(summ, iter)
-                train_writer.add_summary(training_summ, iter)
+                train_writer_val.add_summary(val_summ, iter)
+                train_writer_train.add_summary(training_summ, iter)
 
-                print("Iter: {0} - Training Loss: {1:.4f} ".format(iter, train_cost), end='')
+                print("Iter: {0} - Training Loss: {1:.4f} {2:.3f} sec/batch".format(iter, train_cost,duration), end='')
                 print("Validation Loss: {0:.4f} ".format(val_cost), end='')
                 print("Validation Accuracy: {0:.4f}, F1 score: {1:.4f}".format(val_accuracy, f1))
 
