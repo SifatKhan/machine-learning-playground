@@ -1,8 +1,9 @@
 import numpy as np
 import tensorflow as tf
 import pandas as pd
-import houseprices.houselist as hl
+import houselist as hl
 import time
+import math
 
 pd.read_csv('data/train.csv').sample(frac=1).to_csv('data/train.csv',index=False)
 house_list = hl.HouseList(trainfile='data/train.csv',testfile='data/test.csv',use_validationset=False)
@@ -20,12 +21,13 @@ hidden_nodes_layer1 = 200
 hidden_nodes_layer2 = 200
 hidden_nodes_layer3 = 200
 output_nodes = 1
-num_iterations = 25000
+num_iterations = 30000
 
 
 xplaceholder = tf.placeholder(tf.float32, [None, input_nodes])
 yplaceholder = tf.placeholder(tf.float32, [None,1])
 lambdaPlaceHolder = tf.placeholder(tf.float32, [])
+learningrate = tf.placeholder(tf.float32,[])
 
 
 with tf.name_scope('Hidden1'):
@@ -54,15 +56,17 @@ with tf.name_scope('OutputLayer'):
     prediction = tf.add(tf.matmul(a4_drop, output_layer['theta']), output_layer['bias'],name='Prediction')
 
 with tf.name_scope('CostFunction'):
-    cost = tf.sqrt(tf.reduce_mean(tf.square(prediction - yplaceholder)))
     log_cost = tf.sqrt(tf.reduce_mean(tf.square(tf.log(tf.maximum(prediction,1.0)) - tf.log(yplaceholder))))
-    tf.summary.scalar('cost', cost)
-    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
+    tf.summary.scalar('cost', log_cost)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learningrate).minimize(log_cost)
 
 
 
 lambdaValues = [1,1,1,1,
                 5e-1,5e-1,5e-1,5e-1]
+
+learningrate_decay = 0.999999995
+current_learningrate = 1e-4
 
 lambdaValues = [5e-1]
 with tf.Session() as session:
@@ -84,25 +88,27 @@ with tf.Session() as session:
         train_writer = tf.summary.FileWriter(log_dir,session.graph)
 
 
-        for iteration in range(num_iterations):
+        for iteration in range(1,num_iterations):
 
-            _, temp_cost, summary,_pre, = session.run([optimizer, cost, merged,prediction],
+            current_learningrate = math.pow(learningrate_decay,iteration)*current_learningrate
+            _, temp_cost, summary,_pre, = session.run([optimizer, log_cost, merged,prediction],
                                                     feed_dict={xplaceholder: house_list.traindata,
                                                                yplaceholder: house_list.trainlabels,
-                                                               lambdaPlaceHolder: myLambda})
+                                                               lambdaPlaceHolder: myLambda,
+                                                               learningrate: current_learningrate})
 
             if (iteration % 250 == 0):
                 train_writer.add_summary(summary, iteration)
-                print('Training error:', temp_cost, ' Iteration', iteration + 1, 'out of', num_iterations)
+                print('Training error:', temp_cost, ' Iteration', iteration + 1, 'out of', num_iterations, end=' ')
 
 
-        validationPrediction,validationCost = session.run([prediction,log_cost],
-                                                          feed_dict={xplaceholder: house_list.validationdata,
-                                                                     yplaceholder:house_list.validationlabels,
-                                                                     lambdaPlaceHolder: 1.0})
+                validationPrediction,validationCost = session.run([prediction,log_cost],
+                                                                  feed_dict={xplaceholder: house_list.validationdata,
+                                                                             yplaceholder:house_list.validationlabels,
+                                                                             lambdaPlaceHolder: 1.0})
 
 
-        print("Validation Cost:",validationCost, "Lambda:",myLambda,sep='\t')
+                print("Validation Cost:",validationCost, "Lambda:",myLambda,"Learning rate:",current_learningrate,sep='\t')
         coord.join(threads)
 
 
